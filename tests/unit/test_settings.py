@@ -17,7 +17,8 @@ def _settings(**env: str) -> Settings:
     return Settings(_env_file=None, **env)  # type: ignore[call-arg]
 
 
-def test_defaults_are_mock_and_local() -> None:
+def test_defaults_are_mock_and_local(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("APP_ENV", raising=False)  # CI exports APP_ENV=test
     s = _settings()
     assert s.app_env == AppEnv.LOCAL
     assert s.service_role == ServiceRole.API
