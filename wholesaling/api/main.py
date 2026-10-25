@@ -9,7 +9,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from wholesaling import __version__
-from wholesaling.api.routes import health
+from wholesaling.api.routes import graph_webhook, health
 from wholesaling.config.settings import Settings, get_settings
 from wholesaling.db.engine import make_engine
 from wholesaling.integrations.temporal import get_temporal
@@ -57,6 +57,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url=None,
     )
     app.include_router(health.router)
+    app.include_router(graph_webhook.router)
     return app
 
 
