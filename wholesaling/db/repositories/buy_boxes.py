@@ -133,9 +133,25 @@ class BuyBoxRepository:
         )
         return list((await self._s.execute(stmt)).scalars().all())
 
-    async def get_by_source_message(self, source_message_id: uuid.UUID) -> BuyBox | None:
+    async def get_by_source_message(
+        self, source_message_id: uuid.UUID, buy_box_key: str | None = None
+    ) -> BuyBox | None:
+        """The version a message produced. One message can state several buy boxes (BB-03),
+        each under its own key, so pass ``buy_box_key`` to pick one; without it the first
+        version (by key) is returned."""
         stmt = select(BuyBox).where(BuyBox.source_message_id == source_message_id)
+        if buy_box_key is not None:
+            stmt = stmt.where(BuyBox.buy_box_key == buy_box_key)
+        stmt = stmt.order_by(BuyBox.buy_box_key).limit(1)
         return (await self._s.execute(stmt)).scalar_one_or_none()
+
+    async def list_by_source_message(self, source_message_id: uuid.UUID) -> list[BuyBox]:
+        stmt = (
+            select(BuyBox)
+            .where(BuyBox.source_message_id == source_message_id)
+            .order_by(BuyBox.buy_box_key)
+        )
+        return list((await self._s.execute(stmt)).scalars().all())
 
     async def create_version(
         self,
@@ -159,7 +175,7 @@ class BuyBoxRepository:
         equal the current version (``reason="duplicate"``); no row is written in either case.
         """
         if source_message_id is not None:
-            replayed = await self.get_by_source_message(source_message_id)
+            replayed = await self.get_by_source_message(source_message_id, buy_box_key)
             if replayed is not None:
                 return BuyBoxVersionResult(buy_box=replayed, created=False, reason="replay")
 

@@ -60,7 +60,7 @@ Routing is by **task kind**, as STK-07 states ("Haiku for classify/extract, Sonn
 QA, comp audit"). Section 5's roster lists a single default model per agent (e.g. A4 "Sonnet",
 S4 "Sonnet"); where an agent's classify/extract step should nevertheless run on Sonnet, the agent's
 build step adds an override (`{"A4": {"classify": "claude-sonnet-5-5"}}`) rather than changing
-the task-kind defaults. Decide this per agent in BO-06/BO-07; nothing is overridden today.
+the task-kind defaults. BO-07 did this for A4: `wholesaling.agents.a4.MODEL_OVERRIDES = {"A4": {"classify": "claude-sonnet-5-5"}}`, applied by the conversation activity context (`build_runner(settings, overrides=MODEL_OVERRIDES)`); A4 extraction stays on Haiku. See docs/agents/conversation.md.
 
 Per-agent overrides are a plain dict (a YAML tunable under `config/` later, ENG-Q6), resolved in
 this order: `overrides[agent][task_kind]`, then `overrides[agent]["*"]`, then the setting default.

@@ -1,0 +1,288 @@
+{
+  "_meta": {
+    "purpose": "A4 golden set (REQUIREMENTS.md INV-22): inbound investor replies with the expected classification and, where relevant, the expected extracted buy-box fields. In this build the model is stubbed with the `model` block of each case (MockModelProvider), so the set verifies the pipeline contract and the deterministic pre/post-processing: quote stripping, auto-reply detection, unknown tracking, correction history, multi-box handling. BO-13 turns the same file into the live eval harness input by dropping the `model` blocks and comparing real model output against `expected`.",
+    "format": {
+      "subject": "subject line of the inbound message",
+      "body": "raw inbound body as Graph hands it over (quoted history included where the case tests it)",
+      "headers": "subset of internet headers (auto-submitted etc.)",
+      "history": "earlier thread messages, oldest first, direction in|out",
+      "model": "the structured output the stubbed model returns for classify (A4 CLASSIFY_SCHEMA)",
+      "expected": "classification, is_auto_reply, quoted_text_stripped, reconnect_date, stripped_text_contains / stripped_text_excludes, model_called",
+      "extraction": "optional: {current: {key: criteria}, model: EXTRACT_SCHEMA output, expected: per-box fields, unknowns, corrections}"
+    },
+    "version": 1
+  },
+  "cases": [
+    {
+      "id": "interested_plain",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Yes, we are buying in Houston. Send me what you have and I will take a look.",
+      "history": [{"direction": "out", "body": "Hi Jane, are you currently purchasing properties in Houston?"}],
+      "model": {"classification": "interested", "confidence": 0.93, "rationale": "Wants deals, no criteria stated.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "interested", "is_auto_reply": false, "quoted_text_stripped": false, "model_called": true}
+    },
+    {
+      "id": "interested_short",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Sure, what do you have?",
+      "history": [{"direction": "out", "body": "Hi Mark, are you currently purchasing properties in Houston?"}],
+      "model": {"classification": "interested", "confidence": 0.8, "rationale": "Affirmative, asks for inventory.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "interested", "model_called": true}
+    },
+    {
+      "id": "buy_box_single",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "We buy SFR in 77009, 77008 and 77007, up to 250k, cash, light to medium rehab, can close in 14 days.",
+      "history": [{"direction": "out", "body": "Would you mind sharing your current buy box?"}],
+      "model": {"classification": "buy_box_supplied", "confidence": 0.97, "rationale": "Concrete criteria.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "buy_box_supplied", "model_called": true},
+      "extraction": {
+        "current": {},
+        "model": {"buy_boxes": [{"buy_box_key": "default", "geography": {"markets": ["Houston"], "cities": null, "zips": ["77009", "77008", "77007"], "neighborhoods": null}, "asset_types": ["sfr"], "price_min": null, "price_max": 250000, "condition": "light to medium rehab", "strategy": null, "financing": "cash", "closing_timeline": "14 days", "other_criteria": [], "corrections": [], "raw_text": "We buy SFR in 77009, 77008 and 77007, up to 250k, cash, light to medium rehab, can close in 14 days."}], "rationale": "one box"},
+        "expected": {"buy_boxes": [{"buy_box_key": "default", "price_max": "250000", "asset_types": ["sfr"], "zips": ["77009", "77008", "77007"], "financing": "cash", "unknowns": [], "corrections": []}]}
+      }
+    },
+    {
+      "id": "buy_box_two_in_one_email",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Two things we do: flips in Houston inside the loop, SFR, 150k-300k purchase, heavy rehab is fine. Separately we hold small multifamily (duplex/triplex) in Dallas up to 500k, any condition, conventional financing.",
+      "history": [{"direction": "out", "body": "Would you mind sharing your current buy box?"}],
+      "model": {"classification": "buy_box_supplied", "confidence": 0.95, "rationale": "Two distinct criteria sets.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "buy_box_supplied", "model_called": true},
+      "extraction": {
+        "current": {},
+        "model": {"buy_boxes": [
+          {"buy_box_key": "houston-flips", "geography": {"markets": ["Houston"], "cities": null, "zips": null, "neighborhoods": ["inside the loop"]}, "asset_types": ["sfr"], "price_min": 150000, "price_max": 300000, "condition": "heavy rehab ok", "strategy": "flip", "financing": null, "closing_timeline": null, "other_criteria": [], "corrections": [], "raw_text": "flips in Houston inside the loop, SFR, 150k-300k purchase, heavy rehab is fine"},
+          {"buy_box_key": "dallas-rentals", "geography": {"markets": ["Dallas"], "cities": null, "zips": null, "neighborhoods": null}, "asset_types": ["duplex", "triplex"], "price_min": null, "price_max": 500000, "condition": "any", "strategy": "buy_and_hold", "financing": "conventional", "closing_timeline": null, "other_criteria": [], "corrections": [], "raw_text": "hold small multifamily (duplex/triplex) in Dallas up to 500k, any condition, conventional financing"}
+        ], "rationale": "two boxes"},
+        "expected": {"buy_boxes": [
+          {"buy_box_key": "houston-flips", "price_min": "150000", "price_max": "300000", "unknowns": ["financing", "closing_timeline"]},
+          {"buy_box_key": "dallas-rentals", "price_max": "500000", "asset_types": ["duplex", "triplex"], "unknowns": ["closing_timeline"]}
+        ]}
+      }
+    },
+    {
+      "id": "buy_box_partial_tracks_unknowns",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Mostly the north side, Spring and Humble. Nothing over 200k.",
+      "history": [{"direction": "out", "body": "Would you mind sharing your current buy box?"}],
+      "model": {"classification": "buy_box_supplied", "confidence": 0.9, "rationale": "Area and price stated.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "buy_box_supplied", "model_called": true},
+      "extraction": {
+        "current": {},
+        "model": {"buy_boxes": [{"buy_box_key": "default", "geography": {"markets": null, "cities": ["Spring", "Humble"], "zips": null, "neighborhoods": ["north side"]}, "asset_types": null, "price_min": null, "price_max": 200000, "condition": null, "strategy": null, "financing": null, "closing_timeline": null, "other_criteria": [], "corrections": [], "raw_text": "Mostly the north side, Spring and Humble. Nothing over 200k."}], "rationale": "partial"},
+        "expected": {"buy_boxes": [{"buy_box_key": "default", "price_max": "200000", "unknowns": ["asset_types", "condition", "financing", "closing_timeline"], "corrections": []}]}
+      }
+    },
+    {
+      "id": "correction_price_max",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Quick correction - I said 150k max, not 250k. Everything else stands.",
+      "history": [
+        {"direction": "out", "body": "Would you mind sharing your current buy box?"},
+        {"direction": "in", "body": "SFR in 77009, cash, up to 250k."},
+        {"direction": "out", "body": "Got it: SFR in 77009, cash, up to 250k. What condition are you comfortable with?"}
+      ],
+      "model": {"classification": "buy_box_supplied", "confidence": 0.96, "rationale": "Corrects the price ceiling.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "buy_box_supplied", "model_called": true},
+      "extraction": {
+        "current": {"default": {"geography": {"zips": ["77009"]}, "asset_types": ["sfr"], "price_max": "250000", "financing": "cash"}},
+        "model": {"buy_boxes": [{"buy_box_key": "default", "geography": null, "asset_types": null, "price_min": null, "price_max": 150000, "condition": null, "strategy": null, "financing": null, "closing_timeline": null, "other_criteria": [], "corrections": [{"field": "price_max", "old": "250000", "new": "150000"}], "raw_text": "I said 150k max, not 250k"}], "rationale": "correction"},
+        "expected": {"buy_boxes": [{"buy_box_key": "default", "price_max": "150000", "unknowns": ["condition", "closing_timeline"], "corrections": [{"field": "price_max", "old": "250000", "new": "150000"}]}]}
+      }
+    },
+    {
+      "id": "correction_asset_type_sarcastic_tone",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Not sure how 'duplexes' turned into 'single family' on your end, but we only do duplexes and fourplexes.",
+      "history": [
+        {"direction": "in", "body": "We buy duplexes in Pasadena TX up to 300k."},
+        {"direction": "out", "body": "Thanks - single family in Pasadena up to 300k, noted."}
+      ],
+      "model": {"classification": "buy_box_supplied", "confidence": 0.9, "rationale": "Corrects asset type.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "buy_box_supplied", "model_called": true},
+      "extraction": {
+        "current": {"default": {"geography": {"cities": ["Pasadena"]}, "asset_types": ["sfr"], "price_max": "300000"}},
+        "model": {"buy_boxes": [{"buy_box_key": "default", "geography": null, "asset_types": ["duplex", "fourplex"], "price_min": null, "price_max": null, "condition": null, "strategy": null, "financing": null, "closing_timeline": null, "other_criteria": [], "corrections": [], "raw_text": "we only do duplexes and fourplexes"}], "rationale": "correction"},
+        "expected": {"buy_boxes": [{"buy_box_key": "default", "asset_types": ["duplex", "fourplex"], "unknowns": ["condition", "financing", "closing_timeline"], "corrections": [{"field": "asset_types", "old": ["sfr"], "new": ["duplex", "fourplex"]}]}]}
+      }
+    },
+    {
+      "id": "question_about_fees",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Before I share anything - how does this work on your end? Do you charge the buyer a fee?",
+      "history": [{"direction": "out", "body": "Would you mind sharing your current buy box?"}],
+      "model": {"classification": "question", "confidence": 0.9, "rationale": "Asks how we work.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "question", "model_called": true}
+    },
+    {
+      "id": "question_are_you_licensed",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Are you a licensed broker or a wholesaler?",
+      "history": [],
+      "model": {"classification": "question", "confidence": 0.88, "rationale": "Direct question.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "question", "model_called": true}
+    },
+    {
+      "id": "not_now_with_date",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "We are fully deployed until Q1. Circle back after January 15, 2027.",
+      "history": [{"direction": "out", "body": "Are you currently purchasing properties in Houston?"}],
+      "model": {"classification": "not_now", "confidence": 0.92, "rationale": "Asks to reconnect on a date.", "is_auto_reply": false, "reconnect_date": "2027-01-15"},
+      "expected": {"classification": "not_now", "reconnect_date": "2027-01-15", "model_called": true}
+    },
+    {
+      "id": "not_now_without_date",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Not right now, too much going on. Maybe later in the year.",
+      "history": [],
+      "model": {"classification": "not_now", "confidence": 0.85, "rationale": "Defers without a date.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "not_now", "reconnect_date": null, "model_called": true}
+    },
+    {
+      "id": "not_now_bad_date_string",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Try me again in the spring.",
+      "history": [],
+      "model": {"classification": "not_now", "confidence": 0.8, "rationale": "Vague timing.", "is_auto_reply": false, "reconnect_date": "spring"},
+      "expected": {"classification": "not_now", "reconnect_date": null, "model_called": true}
+    },
+    {
+      "id": "not_interested_polite",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Thanks but we are not buying in Texas anymore. Good luck.",
+      "history": [],
+      "model": {"classification": "not_interested", "confidence": 0.94, "rationale": "Clear no, no removal request.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "not_interested", "model_called": true}
+    },
+    {
+      "id": "opt_out_unsubscribe",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Unsubscribe.",
+      "history": [],
+      "model": {"classification": "opt_out", "confidence": 0.99, "rationale": "Explicit unsubscribe.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "opt_out", "model_called": true}
+    },
+    {
+      "id": "opt_out_stop_emailing",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Please stop emailing me. I never signed up for this.",
+      "history": [],
+      "model": {"classification": "opt_out", "confidence": 0.98, "rationale": "Asks us to stop.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "opt_out", "model_called": true}
+    },
+    {
+      "id": "opt_out_remove_me",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Remove me from your list.",
+      "history": [],
+      "model": {"classification": "opt_out", "confidence": 0.99, "rationale": "Removal request.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "opt_out", "model_called": true}
+    },
+    {
+      "id": "sarcasm_love_spam",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Oh sure, I LOVE spam. Please send me more of it.",
+      "history": [],
+      "model": {"classification": "not_interested", "confidence": 0.8, "rationale": "Sarcastic rejection, no removal request.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "not_interested", "model_called": true}
+    },
+    {
+      "id": "sarcasm_with_removal",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Wow, another wholesaler. How original. Take me off whatever list this is.",
+      "history": [],
+      "model": {"classification": "opt_out", "confidence": 0.95, "rationale": "Sarcasm plus an explicit removal request.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "opt_out", "model_called": true}
+    },
+    {
+      "id": "quoted_outlook_original_message",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Yes, interested. Mostly 77084 and Katy.\n\n-----Original Message-----\nFrom: deals@example.test\nSent: Monday, October 20, 2026 9:00 AM\nTo: jane@acme.com\nSubject: Off-market deals in Houston\n\nHi Jane, are you currently purchasing properties in Houston? We have inventory ready.",
+      "history": [{"direction": "out", "body": "Hi Jane, are you currently purchasing properties in Houston?"}],
+      "model": {"classification": "buy_box_supplied", "confidence": 0.9, "rationale": "Area stated.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "buy_box_supplied", "quoted_text_stripped": true, "stripped_text_contains": "77084 and Katy", "stripped_text_excludes": "We have inventory ready", "model_called": true}
+    },
+    {
+      "id": "quoted_outlook_header_block",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Not interested, thanks.\n\n________________________________\nFrom: deals@example.test <deals@example.test>\nSent: Monday, October 20, 2026 9:00 AM\nTo: Jane Doe <jane@acme.com>\nSubject: Off-market deals in Houston\n\nHi Jane, are you currently purchasing properties in Houston?",
+      "history": [{"direction": "out", "body": "Hi Jane, are you currently purchasing properties in Houston?"}],
+      "model": {"classification": "not_interested", "confidence": 0.95, "rationale": "Clear no.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "not_interested", "quoted_text_stripped": true, "stripped_text_contains": "Not interested, thanks.", "stripped_text_excludes": "currently purchasing", "model_called": true}
+    },
+    {
+      "id": "quoted_gmail_wrote",
+      "subject": "Re: Off-market deals in Houston",
+      "body": "Send them over, SFR under 200k in Pearland.\n\nOn Mon, Oct 20, 2026 at 9:00 AM Deals Team <deals@example.test>\nwrote:\n\n> Hi Jane, are you currently purchasing properties in Houston?\n> If so, would you mind sharing your current buy box?",
+      "history": [{"direction": "out", "body": "Hi Jane, are you currently purchasing properties in Houston?"}],
+      "model": {"classification": "buy_box_supplied", "confidence": 0.93, "rationale": "Criteria stated.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "buy_box_supplied", "quoted_text_stripped": true, "stripped_text_contains": "Pearland", "stripped_text_excludes": "sharing your current buy box", "model_called": true}
+    },
+    {
+      "id": "quoted_angle_brackets_only",
+      "subject": "Re: Off-market deals in Houston",
+      "body": "Yes please.\n> Hi Jane, are you currently purchasing properties in Houston?",
+      "history": [],
+      "model": {"classification": "interested", "confidence": 0.85, "rationale": "Affirmative.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "interested", "quoted_text_stripped": true, "stripped_text_contains": "Yes please.", "stripped_text_excludes": "currently purchasing", "model_called": true}
+    },
+    {
+      "id": "out_of_office_subject",
+      "subject": "Automatic reply: Off-market deals in Houston",
+      "body": "I am out of the office until November 3 with limited access to email. For urgent matters contact our office.",
+      "headers": {"auto-submitted": "auto-replied"},
+      "history": [{"direction": "out", "body": "Hi Jane, are you currently purchasing properties in Houston?"}],
+      "model": {"classification": "interested", "confidence": 0.5, "rationale": "(must not be consulted)", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "ambiguous", "is_auto_reply": true, "model_called": false}
+    },
+    {
+      "id": "out_of_office_body_only",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Thank you for your email. I am currently out of the office and will respond when I return.",
+      "history": [],
+      "model": {"classification": "ambiguous", "confidence": 0.9, "rationale": "(must not be consulted)", "is_auto_reply": true, "reconnect_date": null},
+      "expected": {"classification": "ambiguous", "is_auto_reply": true, "model_called": false}
+    },
+    {
+      "id": "auto_reply_flagged_by_model",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "Thanks for reaching out! This inbox is monitored by our assistant and your message has been logged.",
+      "history": [],
+      "model": {"classification": "interested", "confidence": 0.4, "rationale": "Looks automated.", "is_auto_reply": true, "reconnect_date": null},
+      "expected": {"classification": "ambiguous", "is_auto_reply": true, "model_called": true}
+    },
+    {
+      "id": "ambiguous_one_word",
+      "subject": "RE: Off-market deals in Houston",
+      "body": "ok",
+      "history": [{"direction": "out", "body": "Would you mind sharing your current buy box?"}],
+      "model": {"classification": "ambiguous", "confidence": 0.6, "rationale": "Cannot tell.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "ambiguous", "model_called": true}
+    },
+    {
+      "id": "ambiguous_forwarded_internally",
+      "subject": "FW: Off-market deals in Houston",
+      "body": "Bob, is this the guy you talked to?",
+      "history": [],
+      "model": {"classification": "ambiguous", "confidence": 0.7, "rationale": "Internal forward, not an answer.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "ambiguous", "model_called": true}
+    },
+    {
+      "id": "unrelated_newsletter",
+      "subject": "Your weekly market update",
+      "body": "Mortgage rates ticked up this week. Read our full report online.",
+      "history": [],
+      "model": {"classification": "unrelated", "confidence": 0.97, "rationale": "Newsletter.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "unrelated", "model_called": true}
+    },
+    {
+      "id": "unrelated_misdirected",
+      "subject": "Invoice #4471",
+      "body": "Hi, attaching the invoice for last month's landscaping.",
+      "history": [],
+      "model": {"classification": "unrelated", "confidence": 0.95, "rationale": "Misdirected.", "is_auto_reply": false, "reconnect_date": null},
+      "expected": {"classification": "unrelated", "model_called": true}
+    }
+  ]
+}
