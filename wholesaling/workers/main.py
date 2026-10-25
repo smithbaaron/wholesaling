@@ -15,6 +15,14 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from wholesaling import __version__
+from wholesaling.activities.conversation import (
+    apply_human_decision,
+    classify_inbound,
+    draft_and_qa_reply,
+    extract_and_upsert_buy_box,
+    notify_bounce,
+)
+from wholesaling.activities.digest import compute_and_send_digest
 from wholesaling.activities.discovery import run_a1, run_a2, run_m1
 from wholesaling.activities.graph import (
     create_draft,
@@ -26,14 +34,24 @@ from wholesaling.activities.graph import (
     send_draft,
 )
 from wholesaling.activities.hello import heartbeat_probe, hello
+from wholesaling.activities.outreach import (
+    check_cancel_conditions,
+    decide_and_send,
+    prepare_step,
+    send_approved,
+    send_window,
+    update_sequence,
+)
 from wholesaling.config.settings import Settings, get_settings
 from wholesaling.logging import configure_logging, get_logger
+from wholesaling.workflows.daily_digest import DailyDigestWorkflow
 from wholesaling.workflows.graph_maintenance import (
     GraphDeltaPollWorkflow,
     GraphInboundMessageWorkflow,
     GraphSubscriptionRenewalWorkflow,
 )
 from wholesaling.workflows.hello import HelloWorkflow
+from wholesaling.workflows.investor_sequence import InvestorSequenceWorkflow
 
 log = get_logger(__name__)
 
@@ -42,6 +60,8 @@ WORKFLOWS: list[type] = [
     GraphSubscriptionRenewalWorkflow,
     GraphDeltaPollWorkflow,
     GraphInboundMessageWorkflow,
+    InvestorSequenceWorkflow,
+    DailyDigestWorkflow,
 ]
 ACTIVITIES: list[Callable[..., Any]] = [
     hello,
@@ -56,6 +76,18 @@ ACTIVITIES: list[Callable[..., Any]] = [
     run_m1,
     run_a1,
     run_a2,
+    prepare_step,
+    decide_and_send,
+    send_approved,
+    check_cancel_conditions,
+    send_window,
+    update_sequence,
+    classify_inbound,
+    extract_and_upsert_buy_box,
+    draft_and_qa_reply,
+    apply_human_decision,
+    notify_bounce,
+    compute_and_send_digest,
 ]
 
 

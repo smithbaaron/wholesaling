@@ -110,6 +110,20 @@ class Settings(BaseSettings):
     s3_access_key_id: str | None = None
     s3_secret_access_key: SecretStr | None = None
 
+    # Sender identity for outbound mail (CMP-01 CAN-SPAM; PRE-02 address, PRE-16 approval).
+    # ``footer()`` in agents/templates refuses to render without a postal address and opt-out line.
+    sender_name: str = "Aaron"
+    sender_company: str = "NorthStack"
+    sender_postal_address: str | None = None
+    opt_out_text: str = (
+        'If you would rather not hear from us, reply with "unsubscribe" and we will remove you.'
+    )
+
+    # Business-hour send window in the market's local time (INV-12; values approved under PRE-16).
+    send_window_start_hour: int = Field(default=9, ge=0, le=23)
+    send_window_end_hour: int = Field(default=17, ge=1, le=24)
+    send_window_weekdays_only: bool = True
+
     # Alerting
     alert_email_to: str | None = None
     slack_webhook_url: SecretStr | None = None
@@ -117,6 +131,16 @@ class Settings(BaseSettings):
     # Budget
     soft_budget_cap_usd: float = Field(default=1500, ge=0)
     soft_budget_alert_pct: int = Field(default=80, ge=1, le=100)
+
+    # Operator surface (BO-07 review queue / policy page / daily digest). Single operator,
+    # HTTP Basic. The hash is produced by ``wholesaling.api.auth.hash_password`` (PBKDF2-HMAC);
+    # see docs/operator/review-queue.md. Without a hash every /review and /policies call is 503.
+    operator_username: str = "operator"
+    operator_password_hash: SecretStr | None = None
+    # Daily digest: fires at this local hour in the operator's timezone (WF-18 rejected a fixed
+    # 07:00 review time; the review queue itself is never time-gated).
+    digest_hour_local: int = Field(default=7, ge=0, le=23)
+    operator_timezone: str = "America/Chicago"
 
     @field_validator("sms_mode")
     @classmethod

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Literal
 
+from wholesaling.workflows.daily_digest import DailyDigestInput
 from wholesaling.workflows.graph_maintenance import (
     DeltaPollWorkflowInput,
     SubscriptionRenewalInput,
@@ -61,7 +62,34 @@ SCHEDULES: list[ScheduleSpec] = [
         requirement="WF-12",
         tags=frozenset({"graph"}),
     ),
+    ScheduleSpec(
+        id="daily-digest",
+        workflow="DailyDigestWorkflow",
+        interval=timedelta(days=1),
+        args=(DailyDigestInput(),),
+        overlap="skip",
+        note=(
+            "Daily KPI digest (BO-21) through the configured sinks. Fires once a day at "
+            "DIGEST_HOUR_LOCAL in OPERATOR_TIMEZONE (defaults 07:00 America/Chicago); the ops "
+            "command that materialises schedules uses digest_calendar_spec(settings) for the "
+            "calendar spec. WF-18's fixed review time was rejected: the review queue itself is "
+            "not time-gated, only this summary is."
+        ),
+        requirement="BO-07 / INT-18",
+        tags=frozenset({"digest", "reporting"}),
+    ),
 ]
+
+
+def digest_calendar_spec(settings: Any) -> dict[str, Any]:
+    """Calendar spec for the ``daily-digest`` schedule from ``DIGEST_HOUR_LOCAL`` and
+    ``OPERATOR_TIMEZONE``: ``{"hour": H, "minute": 0, "time_zone": TZ}`` (the SDK's
+    ``ScheduleCalendarSpec`` field names)."""
+    return {
+        "hour": int(settings.digest_hour_local),
+        "minute": 0,
+        "time_zone": str(settings.operator_timezone),
+    }
 
 
 def get_schedule(schedule_id: str) -> ScheduleSpec:
@@ -72,4 +100,4 @@ def get_schedule(schedule_id: str) -> ScheduleSpec:
     raise KeyError(msg)
 
 
-__all__ = ["SCHEDULES", "OverlapPolicy", "ScheduleSpec", "get_schedule"]
+__all__ = ["SCHEDULES", "OverlapPolicy", "ScheduleSpec", "digest_calendar_spec", "get_schedule"]
