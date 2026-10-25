@@ -11,6 +11,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+
 from wholesaling.config.settings import Settings
 from wholesaling.db import Base, make_engine, make_session_factory
 
