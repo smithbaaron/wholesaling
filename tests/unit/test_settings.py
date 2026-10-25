@@ -45,14 +45,28 @@ def test_production_validation_flags_sqlite_and_missing_temporal_cloud() -> None
     problems = s.validate_for_production()
     assert any("PostgreSQL" in p for p in problems)
     assert any("Temporal Cloud" in p for p in problems)
+    assert any("TEMPORAL_MODE" in p for p in problems)
 
 
 def test_production_validation_passes_with_postgres_and_cloud() -> None:
     s = _settings(
         app_env="production",
         database_url="postgresql+asyncpg://u:p@h/db",
+        temporal_mode="live",
         temporal_tls="true",
         temporal_api_key="k",
+    )
+    assert s.validate_for_production() == []
+
+
+def test_production_validation_accepts_mtls_instead_of_api_key() -> None:
+    s = _settings(
+        app_env="production",
+        database_url="postgresql+asyncpg://u:p@h/db",
+        temporal_mode="live",
+        temporal_tls="true",
+        temporal_tls_client_cert_path="/certs/client.pem",
+        temporal_tls_client_key_path="/certs/client.key",
     )
     assert s.validate_for_production() == []
 
@@ -68,9 +82,7 @@ def test_env_example_keys_match_settings_fields() -> None:
     fields = set(Settings.model_fields)
     missing_in_settings = documented - fields
     missing_in_example = fields - documented
-    assert not missing_in_settings, (
-        f".env.example keys unknown to Settings: {missing_in_settings}"
-    )
+    assert not missing_in_settings, f".env.example keys unknown to Settings: {missing_in_settings}"
     assert not missing_in_example, (
         f"Settings fields missing from .env.example: {missing_in_example}"
     )

@@ -48,10 +48,13 @@ class Settings(BaseSettings):
     test_database_url: str | None = None
 
     # Temporal
+    temporal_mode: Mode = "mock"
     temporal_address: str = "localhost:7233"
     temporal_namespace: str = "default"
     temporal_api_key: SecretStr | None = None
     temporal_tls: bool = False
+    temporal_tls_client_cert_path: str | None = None
+    temporal_tls_client_key_path: str | None = None
     temporal_task_queue: str = "wholesaling-main"
 
     # Model provider
@@ -132,8 +135,17 @@ class Settings(BaseSettings):
         problems: list[str] = []
         if self.is_sqlite:
             problems.append("DATABASE_URL must be PostgreSQL in production")
-        if not self.temporal_tls or self.temporal_api_key is None:
-            problems.append("Temporal Cloud requires TEMPORAL_TLS=true and TEMPORAL_API_KEY")
+        if self.temporal_mode != "live":
+            problems.append("TEMPORAL_MODE must be 'live' in production")
+        has_mtls = (
+            self.temporal_tls_client_cert_path is not None
+            and self.temporal_tls_client_key_path is not None
+        )
+        if not self.temporal_tls or (self.temporal_api_key is None and not has_mtls):
+            problems.append(
+                "Temporal Cloud requires TEMPORAL_TLS=true and either TEMPORAL_API_KEY "
+                "or both TEMPORAL_TLS_CLIENT_CERT_PATH and TEMPORAL_TLS_CLIENT_KEY_PATH"
+            )
         return problems
 
 

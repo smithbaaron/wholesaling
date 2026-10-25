@@ -2,3 +2,7 @@
 
 All I/O happens in ``wholesaling.activities``.
 """
+
+from wholesaling.workflows.hello import HelloStatus, HelloWorkflow
+
+__all__ = ["HelloStatus", "HelloWorkflow"]
