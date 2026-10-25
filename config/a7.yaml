@@ -1,0 +1,22 @@
+# REQUIREMENTS.md A7-03..A7-08, OPN-01..03, OPN-12..14, OPN-16
+assignment_fee: 10000          # OPN-01
+market_pct: 0.70               # OPN-02
+negotiation_room_pct: 0.07     # OPN-03
+closing_cost_pct: 0.03         # OPN-13 — UNVALIDATED default
+offer_round_down_to: 500
+cash_close_days: 21            # OPN-14 — UNVALIDATED default
+min_offer_pct_of_arv: 0.35
+asking_tolerance_pct: 0.25
+
+# OPN-12 — UNVALIDATED placeholder rates per sqft by condition class; per-market override in markets table
+repair_rate_per_sqft:
+  light: 15
+  medium: 30
+  heavy: 50
+  gut: 75
+houston_foundation_contingency: 12000   # OPN-12 — UNVALIDATED
+
+comp_tiers:
+  - { tier: 1, max_miles: 0.75, max_days: 180 }
+  - { tier: 2, max_miles: 1.0, max_days: 270 }
+  - { tier: 3, max_miles: 1.5, max_days: 365 }

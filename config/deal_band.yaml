@@ -1,0 +1,5 @@
+# REQUIREMENTS.md M1-06. Per-market overrides live in the markets table (set by M1, clamped to this range).
+min_purchase: 75000
+max_purchase: 350000
+min_arv: 120000
+max_arv: 500000

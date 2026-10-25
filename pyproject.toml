@@ -1,0 +1,82 @@
+[project]
+name = "wholesaling"
+version = "0.1.0"
+description = "Real estate wholesaling automation: Temporal workflows, FastAPI, PostgreSQL, provider-agnostic model layer."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "Proprietary" }
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy[asyncio]>=2.0.30",
+    "asyncpg>=0.29",
+    "aiosqlite>=0.20",
+    "alembic>=1.13",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "temporalio>=1.7",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+    "structlog>=24.1",
+]
+
+[project.optional-dependencies]
+postgres = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "types-PyYAML",
+    "greenlet>=3.0",
+]
+
+[project.scripts]
+wholesaling-api = "wholesaling.api.main:run"
+wholesaling-worker = "wholesaling.workers.main:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["wholesaling"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["."]
+
+[tool.ruff.lint.isort]
+known-first-party = ["wholesaling"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC", "S", "T20", "SIM", "RUF"]
+ignore = ["S101", "S311", "RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "T20"]
+"wholesaling/db/migrations/**" = ["E501", "I"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["wholesaling"]
+exclude = ["wholesaling/db/migrations/versions/"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning:wholesaling.*"]
+markers = [
+    "postgres: requires a live PostgreSQL (set TEST_DATABASE_URL)",
+    "temporal: starts the Temporal time-skipping test server (downloads a binary on first run)",
+]

@@ -1,0 +1,7 @@
+# REQUIREMENTS.md OPN-04, OPN-05, SEL-09
+investor_followup_days: [4, 4, 4]
+seller_followup_days: [3, 7, 14]
+negotiation_reminder_days: [2, 5, 10]
+negotiation_expire_day: 14
+negotiation_reengage_days: [60, 90]
+decline_requeue_days: 90

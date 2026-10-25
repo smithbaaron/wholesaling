@@ -1,0 +1,4 @@
+# REQUIREMENTS.md OPN-06, OPN-10
+l1_daily_investor_sends: 50
+l1_daily_seller_email_sends: 200
+qa_auto_reply_confidence_threshold: 0.85   # OPN-10 — proposed, not yet decided

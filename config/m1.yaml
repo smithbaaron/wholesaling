@@ -1,0 +1,39 @@
+# REQUIREMENTS.md M1-02, M1-03, M1-04, OPN-08
+weights:
+  demand: 0.30
+  spread: 0.25
+  distress: 0.20
+  liquidity: 0.10
+  price_fit: 0.10
+  friction: -0.05
+active_cap: 5
+watch_to_active_min_buy_boxes: 10
+
+# State wholesaling legal friction, 0 (none) to 3 (severe). Placeholder values: every entry must be
+# confirmed by per-market legal review (CMP-04) before a market can leave Watch.
+legal_friction:
+  TX: 1
+
+# OPN-08 default: Houston plus the 20 largest Sunbelt and Midwest metros. Edit when you decide.
+seed_markets:
+  - Houston, TX
+  - Dallas-Fort Worth, TX
+  - San Antonio, TX
+  - Austin, TX
+  - Atlanta, GA
+  - Phoenix, AZ
+  - Tampa, FL
+  - Orlando, FL
+  - Jacksonville, FL
+  - Charlotte, NC
+  - Nashville, TN
+  - Memphis, TN
+  - Birmingham, AL
+  - Oklahoma City, OK
+  - Kansas City, MO
+  - St. Louis, MO
+  - Indianapolis, IN
+  - Columbus, OH
+  - Cleveland, OH
+  - Cincinnati, OH
+  - Detroit, MI

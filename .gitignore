@@ -1,0 +1,31 @@
+# Secrets and local state
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+var/
+local.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Source documents are tracked; derived scratch is not
+*.tmp
