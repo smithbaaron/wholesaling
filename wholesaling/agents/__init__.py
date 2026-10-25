@@ -1,4 +1,6 @@
-"""Agent definitions and the provider-agnostic model layer (``agents/llm.py``, build step 5).
+"""Agents (REQUIREMENTS.md section 5) and the provider-agnostic model layer.
 
-Nothing here yet by design: REQUIREMENTS.md BO-05 is after steps 1 to 3.
+- ``wholesaling.agents.llm``  model layer (build step BO-05): routing, providers, run logging
+- ``wholesaling.agents.base`` ``BaseAgent`` / ``PromptTemplate`` helpers every agent builds on
+- ``wholesaling.agents.m1`` ... individual agents arrive from BO-06 onward
 """
