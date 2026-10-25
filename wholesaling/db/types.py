@@ -61,3 +61,6 @@ Money = Numeric(12, 2)
 
 # Ratios and percentages stored as decimals (0.70, not 70).
 Ratio = Numeric(6, 4)
+
+# Model-API spend: a single Haiku classify costs ~$0.0003, so ledger precision is 6 decimals.
+MicroMoney = Numeric(12, 6)

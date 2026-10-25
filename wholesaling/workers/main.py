@@ -15,15 +15,48 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from wholesaling import __version__
+from wholesaling.activities.discovery import run_a1, run_a2, run_m1
+from wholesaling.activities.graph import (
+    create_draft,
+    delta_poll,
+    fetch_message,
+    raise_alert,
+    record_renewal_outcome,
+    renew_subscriptions,
+    send_draft,
+)
 from wholesaling.activities.hello import heartbeat_probe, hello
 from wholesaling.config.settings import Settings, get_settings
 from wholesaling.logging import configure_logging, get_logger
+from wholesaling.workflows.graph_maintenance import (
+    GraphDeltaPollWorkflow,
+    GraphInboundMessageWorkflow,
+    GraphSubscriptionRenewalWorkflow,
+)
 from wholesaling.workflows.hello import HelloWorkflow
 
 log = get_logger(__name__)
 
-WORKFLOWS: list[type] = [HelloWorkflow]
-ACTIVITIES: list[Callable[..., Any]] = [hello, heartbeat_probe]
+WORKFLOWS: list[type] = [
+    HelloWorkflow,
+    GraphSubscriptionRenewalWorkflow,
+    GraphDeltaPollWorkflow,
+    GraphInboundMessageWorkflow,
+]
+ACTIVITIES: list[Callable[..., Any]] = [
+    hello,
+    heartbeat_probe,
+    fetch_message,
+    delta_poll,
+    renew_subscriptions,
+    record_renewal_outcome,
+    raise_alert,
+    create_draft,
+    send_draft,
+    run_m1,
+    run_a1,
+    run_a2,
+]
 
 
 def build_worker(

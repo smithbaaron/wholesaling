@@ -22,7 +22,7 @@ from wholesaling.db.models.enums import (
     QaVerdict,
     enum_column,
 )
-from wholesaling.db.types import GUID, JSONDoc, Money, Ratio
+from wholesaling.db.types import GUID, JSONDoc, MicroMoney, Ratio
 
 
 class Policy(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -66,7 +66,7 @@ class AgentRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     prompt_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    cost_usd: Mapped[Decimal] = mapped_column(Money, nullable=False, default=Decimal("0"))
+    cost_usd: Mapped[Decimal] = mapped_column(MicroMoney, nullable=False, default=Decimal("0"))
     output: Mapped[dict[str, Any]] = mapped_column(JSONDoc(), nullable=False, default=dict)
     decision: Mapped[str | None] = mapped_column(String(64), nullable=True)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)

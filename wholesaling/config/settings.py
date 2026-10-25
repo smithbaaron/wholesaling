@@ -74,6 +74,11 @@ class Settings(BaseSettings):
     graph_mailbox: str | None = None
     graph_webhook_url: str | None = None
     graph_webhook_client_state: SecretStr | None = None
+    # RUL-06: no live messages in this build. The live gateway refuses send_draft unless true.
+    graph_allow_live_send: bool = False
+
+    # Data providers: deeds, market signals, contact enrichment (INT-03 OPEN; only mock exists)
+    data_provider_mode: Mode = "mock"
 
     # Google Sheets
     sheets_mode: Mode = "mock"
