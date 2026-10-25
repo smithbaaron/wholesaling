@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% set active = 'digest' %}
+{% block title %}Digest {{ report.day }}{% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <h1>Daily digest · {{ report.day }}</h1>
+    <p class="sub">Local day in {{ timezone }}. Delivered every day at {{ '%02d' | format(digest_hour) }}:00 to the log{% if slack_enabled %} and Slack{% endif %}; email delivery waits for live mode. <a href="/digest.txt?day={{ report.day }}">Plain-text version</a>.</p>
+  </div>
+  <form class="filters" method="get" action="/digest">
+    <label>Day <input type="date" name="day" value="{{ report.day }}" onchange="this.form.submit()"></label>
+  </form>
+</section>
+
+<section class="kpis">
+  <div class="tile {{ 'warn' if report.queue.depth else '' }}">
+    <div class="label">Awaiting review</div>
+    <div class="value">{{ report.queue.depth }}</div>
+    <div class="dim small">oldest {{ report.queue.oldest_age_seconds | age }}</div>
+  </div>
+  <div class="tile"><div class="label">Model spend today</div><div class="value">{{ today.model_spend_usd | money }}</div><div class="dim small">7 d {{ week.model_spend_usd | money }}</div></div>
+  <div class="tile"><div class="label">Cost / qualified buyer (7 d)</div><div class="value">{{ week.cost_per_qualified_buyer_usd | money }}</div></div>
+</section>
+
+<table class="kpi-table">
+  <thead><tr><th>KPI (BO-21)</th><th>Today</th><th>Rolling 7 days</th></tr></thead>
+  <tbody>
+    <tr><td>Discovered contacts</td><td>{{ today.discovered_contacts }}</td><td>{{ week.discovered_contacts }}</td></tr>
+    <tr><td>Messages sent</td><td>{{ today.messages_sent }}</td><td>{{ week.messages_sent }}</td></tr>
+    <tr><td>Responses</td><td>{{ today.responses }}</td><td>{{ week.responses }}</td></tr>
+    <tr><td>Qualified responses (interested / buy box)</td><td>{{ today.qualified_responses }}</td><td>{{ week.qualified_responses }}</td></tr>
+    <tr><td>Opt-outs</td><td>{{ today.opt_outs }}</td><td>{{ week.opt_outs }}</td></tr>
+    <tr><td>Qualified buy boxes</td><td>{{ today.qualified_buy_boxes }}</td><td>{{ week.qualified_buy_boxes }}</td></tr>
+    <tr><td>Matching properties</td><td>{{ today.matching_properties }}</td><td>{{ week.matching_properties }}</td></tr>
+    <tr><td>Reviewed deals</td><td>{{ today.reviewed_deals }}</td><td>{{ week.reviewed_deals }}</td></tr>
+    <tr><td>Contracts (accepted offers)</td><td>{{ today.contracts }}</td><td>{{ week.contracts }}</td></tr>
+    <tr><td>Assignment fees</td><td>{{ today.assignment_fees_usd | money }}</td><td>{{ week.assignment_fees_usd | money }}</td></tr>
+    <tr><td>Cost per qualified buyer</td><td>{{ today.cost_per_qualified_buyer_usd | money }}</td><td>{{ week.cost_per_qualified_buyer_usd | money }}</td></tr>
+    <tr><td>QA reviews / blocked</td><td>{{ today.qa_reviews }} / {{ today.qa_blocked }}</td><td>{{ week.qa_reviews }} / {{ week.qa_blocked }}</td></tr>
+    <tr><td>Drafts queued / auto-sent</td><td>{{ today.drafts_queued }} / {{ today.drafts_auto_sent }}</td><td>{{ week.drafts_queued }} / {{ week.drafts_auto_sent }}</td></tr>
+  </tbody>
+</table>
+
+<h2>Promotion readiness (POL-04)</h2>
+<ul class="readiness-list">
+  {% for r in report.readiness %}
+  <li><span class="ready-{{ 'yes' if r.ready else 'no' }}">{{ 'ready' if r.ready else 'not ready' }}</span> {{ r.action.value | replace('_', ' ') }} · {{ r.approved_drafts }} approved, edit rate {{ r.edit_rate | pct }}{% if r.hard_floor %} · hard floor{% endif %}</li>
+  {% endfor %}
+</ul>
+{% endblock %}

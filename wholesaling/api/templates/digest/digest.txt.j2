@@ -1,0 +1,29 @@
+WHOLESALING DAILY DIGEST — {{ report.day }} ({{ report.timezone }})
+generated {{ report.generated_at | dt }}
+
+REVIEW QUEUE
+  awaiting your decision : {{ report.queue.depth }}
+  oldest waiting         : {{ report.queue.oldest_age_seconds | age }}
+  -> /review (not time-gated; act whenever you like)
+
+KPIs (BO-21)                              today       7 days
+  discovered contacts        {{ '%12d' | format(today.discovered_contacts) }} {{ '%12d' | format(week.discovered_contacts) }}
+  messages sent              {{ '%12d' | format(today.messages_sent) }} {{ '%12d' | format(week.messages_sent) }}
+  responses                  {{ '%12d' | format(today.responses) }} {{ '%12d' | format(week.responses) }}
+  qualified responses        {{ '%12d' | format(today.qualified_responses) }} {{ '%12d' | format(week.qualified_responses) }}
+  opt-outs                   {{ '%12d' | format(today.opt_outs) }} {{ '%12d' | format(week.opt_outs) }}
+  qualified buy boxes        {{ '%12d' | format(today.qualified_buy_boxes) }} {{ '%12d' | format(week.qualified_buy_boxes) }}
+  matching properties        {{ '%12d' | format(today.matching_properties) }} {{ '%12d' | format(week.matching_properties) }}
+  reviewed deals             {{ '%12d' | format(today.reviewed_deals) }} {{ '%12d' | format(week.reviewed_deals) }}
+  contracts (accepted offers){{ '%12d' | format(today.contracts) }} {{ '%12d' | format(week.contracts) }}
+  assignment fees            {{ '%12s' | format(today.assignment_fees_usd | money) }} {{ '%12s' | format(week.assignment_fees_usd | money) }}
+  model spend                {{ '%12s' | format(today.model_spend_usd | money) }} {{ '%12s' | format(week.model_spend_usd | money) }}
+  cost / qualified buyer     {{ '%12s' | format(today.cost_per_qualified_buyer_usd | money) }} {{ '%12s' | format(week.cost_per_qualified_buyer_usd | money) }}
+  QA reviews / blocked       {{ '%12s' | format(today.qa_reviews ~ ' / ' ~ today.qa_blocked) }} {{ '%12s' | format(week.qa_reviews ~ ' / ' ~ week.qa_blocked) }}
+  drafts queued / auto-sent  {{ '%12s' | format(today.drafts_queued ~ ' / ' ~ today.drafts_auto_sent) }} {{ '%12s' | format(week.drafts_queued ~ ' / ' ~ week.drafts_auto_sent) }}
+
+PROMOTION READINESS (POL-04, last 30 days; informational, nothing auto-promotes)
+{% for r in report.readiness %}
+  [{{ 'READY' if r.ready else '  -  ' }}] {{ '%-28s' | format(r.action.value) }} approved {{ '%3d' | format(r.approved_drafts) }}  edits {{ '%6s' | format(r.edit_rate | pct) }}  qa-blocked-sent {{ r.qa_blocked_sent }}  compliance {{ r.compliance_flags }}{% if r.hard_floor %}  (hard floor){% endif %}{% if r.demotion_signal %}  DEMOTION SIGNAL{% endif %}
+
+{% endfor %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% set active = 'review' %}
+{% block title %}Review queue ({{ total }}){% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <h1>Review queue</h1>
+    <p class="sub">{{ total }} draft{{ '' if total == 1 else 's' }} waiting for you. Approve sends through the owning workflow; reject blocks it. Nothing is time-gated.</p>
+  </div>
+  <form class="filters" method="get" action="/review">
+    <label>Action
+      <select name="action" onchange="this.form.submit()">
+        <option value="" {% if not selected_action %}selected{% endif %}>all</option>
+        {% for a in actions %}
+        <option value="{{ a }}" {% if a == selected_action %}selected{% endif %}>{{ a | replace('_', ' ') }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Market
+      <select name="market" onchange="this.form.submit()">
+        <option value="" {% if not selected_market %}selected{% endif %}>all</option>
+        {% for m in markets %}
+        <option value="{{ m.id }}" {% if (m.id | string) == selected_market %}selected{% endif %}>{{ m.name }}, {{ m.state }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <noscript><button type="submit">Filter</button></noscript>
+  </form>
+</section>
+
+{% if total == 0 %}
+<p class="empty" id="queue-empty">Queue is empty. Nothing needs a decision right now.</p>
+{% endif %}
+
+{% for action, items in groups.items() %}
+<section class="group" id="group-{{ action }}">
+  <h2>{{ action | replace('_', ' ') }} <span class="count">{{ items | length }}</span></h2>
+  <ul class="items">
+    {% for item in items %}
+    {% include "_review_item.html" %}
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endblock %}

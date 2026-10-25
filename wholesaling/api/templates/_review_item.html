@@ -1,0 +1,49 @@
+<li class="item" id="item-{{ item.message_id }}" data-message-id="{{ item.message_id }}">
+  <div class="item-head">
+    <div class="meta">
+      <span class="recipient">{{ item.recipient }}</span>
+      {% if item.investor_name %}<span class="dim">· {{ item.investor_name }}</span>{% endif %}
+      {% if item.market_name %}<span class="pill">{{ item.market_name }}</span>{% endif %}
+      {% if item.sequence_step is not none %}<span class="pill">step {{ item.sequence_step }}</span>{% endif %}
+      <span class="age" title="{{ item.created_at | dt }}">waiting {{ item.age_seconds(now) | age }}</span>
+    </div>
+    <div class="subject">{{ item.subject or '(no subject)' }}</div>
+  </div>
+
+  <div class="qa">
+    {% if item.qa_verdict %}
+    <span class="verdict verdict-{{ item.qa_verdict.value }}">QA {{ item.qa_verdict.value }}</span>
+    {% if item.qa_confidence is not none %}<span class="dim">confidence {{ (item.qa_confidence | float) | pct(0) }}</span>{% endif %}
+    {% for f in item.qa_flags %}<span class="flag">{{ f }}</span>{% endfor %}
+    {% if item.qa_rationale %}<p class="rationale">{{ item.qa_rationale }}</p>{% endif %}
+    {% else %}
+    <span class="verdict verdict-none">no QA review</span>
+    {% endif %}
+    {% if item.policy_reason %}<p class="policy">Policy: {{ item.policy_reason }}</p>{% endif %}
+  </div>
+
+  <details class="body">
+    <summary>{{ item.body_preview }}</summary>
+    <pre>{{ item.body }}</pre>
+  </details>
+
+  <div class="actions">
+    <form hx-post="/review/{{ item.message_id }}/approve" hx-target="#item-{{ item.message_id }}" hx-swap="outerHTML" method="post" action="/review/{{ item.message_id }}/approve">
+      <button type="submit" class="btn approve">Approve</button>
+    </form>
+    <details class="edit">
+      <summary class="btn">Edit &amp; approve</summary>
+      <form hx-post="/review/{{ item.message_id }}/approve" hx-target="#item-{{ item.message_id }}" hx-swap="outerHTML" method="post" action="/review/{{ item.message_id }}/approve">
+        <textarea name="edited_body" rows="8" required>{{ item.body }}</textarea>
+        <button type="submit" class="btn approve">Approve edited</button>
+      </form>
+    </details>
+    <details class="reject">
+      <summary class="btn danger">Reject</summary>
+      <form hx-post="/review/{{ item.message_id }}/reject" hx-target="#item-{{ item.message_id }}" hx-swap="outerHTML" method="post" action="/review/{{ item.message_id }}/reject">
+        <input name="reason" placeholder="reason (kept in the audit log)" required>
+        <button type="submit" class="btn danger">Reject draft</button>
+      </form>
+    </details>
+  </div>
+</li>

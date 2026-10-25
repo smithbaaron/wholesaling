@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Operator{% endblock %} · Wholesaling</title>
+  <meta name="htmx-config" content='{"responseHandling":[{"code":"[23]..","swap":true},{"code":"[45]..","swap":true,"error":true}],"includeIndicatorStyles":false}'>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="nav">
+      <a class="brand" href="/review">Wholesaling</a>
+      <a href="/review" {% if active == 'review' %}class="active"{% endif %}>Review queue</a>
+      <a href="/policies" {% if active == 'policies' %}class="active"{% endif %}>Policies</a>
+      <a href="/digest" {% if active == 'digest' %}class="active"{% endif %}>Digest</a>
+    </nav>
+    <span class="who">{{ operator }}</span>
+  </header>
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="foot">Mock mode unless configured otherwise. No live sends in this build (RUL-06).</footer>
+</body>
+</html>

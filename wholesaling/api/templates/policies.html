@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% set active = 'policies' %}
+{% block title %}Policies{% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <h1>Autonomy policies</h1>
+    <p class="sub">One level per action (POL-01). Every change here is recorded as a human action under your username. Hard floors stay human at every level and cannot be raised (POL-06). Promotion readiness is informational; nothing promotes itself in this build (POL-04).</p>
+  </div>
+</section>
+<table class="policies">
+  <thead>
+    <tr>
+      <th>Action</th>
+      <th>Level</th>
+      <th>Behaviour now</th>
+      <th>Daily cap</th>
+      <th>QA threshold</th>
+      <th>Promotion readiness (30 d)</th>
+      <th>Change</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in policies %}
+    {% include "_policy_row.html" %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

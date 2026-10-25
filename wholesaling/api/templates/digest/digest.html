@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wholesaling digest {{ report.day }}</title>
+</head>
+<body style="font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; color:#1b1b1f; max-width:680px; margin:0 auto; padding:16px;">
+  <h1 style="font-size:20px; margin:0 0 4px;">Wholesaling daily digest · {{ report.day }}</h1>
+  <p style="color:#6b6b76; margin:0 0 16px; font-size:13px;">{{ report.timezone }} · generated {{ report.generated_at | dt }}</p>
+
+  <div style="border:1px solid #d9d9e0; border-radius:8px; padding:12px 16px; margin-bottom:16px;">
+    <strong style="font-size:16px;">{{ report.queue.depth }} draft{{ '' if report.queue.depth == 1 else 's' }} awaiting review</strong>
+    <div style="color:#6b6b76; font-size:13px;">oldest waiting {{ report.queue.oldest_age_seconds | age }} · the queue is not time-gated</div>
+  </div>
+
+  <table style="border-collapse:collapse; width:100%; font-size:14px;">
+    <thead>
+      <tr style="text-align:left; border-bottom:2px solid #d9d9e0;"><th style="padding:6px 4px;">KPI</th><th style="padding:6px 4px; text-align:right;">Today</th><th style="padding:6px 4px; text-align:right;">7 days</th></tr>
+    </thead>
+    <tbody>
+      {% set rows = [
+        ('Discovered contacts', today.discovered_contacts, week.discovered_contacts),
+        ('Messages sent', today.messages_sent, week.messages_sent),
+        ('Responses', today.responses, week.responses),
+        ('Qualified responses', today.qualified_responses, week.qualified_responses),
+        ('Opt-outs', today.opt_outs, week.opt_outs),
+        ('Qualified buy boxes', today.qualified_buy_boxes, week.qualified_buy_boxes),
+        ('Matching properties', today.matching_properties, week.matching_properties),
+        ('Reviewed deals', today.reviewed_deals, week.reviewed_deals),
+        ('Contracts (accepted offers)', today.contracts, week.contracts),
+        ('Assignment fees', today.assignment_fees_usd | money, week.assignment_fees_usd | money),
+        ('Model spend', today.model_spend_usd | money, week.model_spend_usd | money),
+        ('Cost per qualified buyer', today.cost_per_qualified_buyer_usd | money, week.cost_per_qualified_buyer_usd | money),
+        ('QA reviews / blocked', today.qa_reviews ~ ' / ' ~ today.qa_blocked, week.qa_reviews ~ ' / ' ~ week.qa_blocked),
+        ('Drafts queued / auto-sent', today.drafts_queued ~ ' / ' ~ today.drafts_auto_sent, week.drafts_queued ~ ' / ' ~ week.drafts_auto_sent),
+      ] %}
+      {% for label, a, b in rows %}
+      <tr style="border-bottom:1px solid #ececf1;"><td style="padding:6px 4px;">{{ label }}</td><td style="padding:6px 4px; text-align:right; font-variant-numeric: tabular-nums;">{{ a }}</td><td style="padding:6px 4px; text-align:right; font-variant-numeric: tabular-nums;">{{ b }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 style="font-size:16px; margin:20px 0 8px;">Promotion readiness (POL-04)</h2>
+  <ul style="padding-left:18px; font-size:14px; margin:0;">
+    {% for r in report.readiness %}
+    <li style="margin:2px 0;"><strong>{{ 'ready' if r.ready else 'not ready' }}</strong> · {{ r.action.value | replace('_', ' ') }} · {{ r.approved_drafts }} approved · edit rate {{ r.edit_rate | pct }}{% if r.hard_floor %} · hard floor{% endif %}{% if r.demotion_signal %} · <em>demotion signal</em>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  <p style="color:#6b6b76; font-size:12px; margin-top:20px;">Nothing promotes automatically in this build. Email delivery of this digest is deferred to live mode.</p>
+</body>
+</html>

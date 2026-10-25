@@ -1,0 +1,39 @@
+<tr class="policy {% if p.hard_floor %}hard-floor{% endif %} {% if flash %}flash{% endif %}" id="policy-{{ p.action }}">
+  <td class="name">
+    <strong>{{ p.action | replace('_', ' ') }}</strong>
+    {% if p.hard_floor %}<span class="pill floor">hard floor</span>{% endif %}
+    {% if p.note %}<div class="dim small">{{ p.note }}</div>{% endif %}
+    {% if p.updated_by %}<div class="dim small">by {{ p.updated_by }}</div>{% endif %}
+  </td>
+  <td class="level"><span class="lvl lvl-{{ p.level }}">{{ p.level }}</span></td>
+  <td>
+    <code>{{ p.behaviour }}</code>
+    {% if p.condition %}<div class="dim small">{{ p.condition }}</div>{% endif %}
+  </td>
+  <td>{{ p.daily_cap if p.daily_cap is not none else '-' }}</td>
+  <td>{{ p.threshold_effective | pct(0) }}{% if p.threshold is none %} <span class="dim small">(default)</span>{% endif %}</td>
+  <td class="readiness">
+    {% if p.readiness %}
+    {% set r = p.readiness %}
+    <span class="ready-{{ 'yes' if r.ready else 'no' }}">{{ 'ready' if r.ready else 'not ready' }}</span>
+    <ul class="criteria">
+      <li class="{{ 'ok' if r.criteria.approved_drafts else 'miss' }}">{{ r.approved_drafts }} / 50 approved drafts</li>
+      <li class="{{ 'ok' if r.criteria.edit_rate else 'miss' }}">edit rate {{ r.edit_rate | pct }} (max 5%)</li>
+      <li class="{{ 'ok' if r.criteria.no_qa_blocked_sent else 'miss' }}">{{ r.qa_blocked_sent }} QA-blocked sent</li>
+      <li class="{{ 'ok' if r.criteria.no_compliance_flags else 'miss' }}">{{ r.compliance_flags }} compliance flags</li>
+      {% if r.demotion_signal %}<li class="miss">demotion signal: 7-day edit rate {{ r.edit_rate_7d | pct }}</li>{% endif %}
+    </ul>
+    {% endif %}
+  </td>
+  <td class="change">
+    <form hx-post="/policies/{{ p.action }}" hx-target="#policy-{{ p.action }}" hx-swap="outerHTML" method="post" action="/policies/{{ p.action }}">
+      <select name="level" {% if p.hard_floor %}disabled title="hard floor: stays L0"{% endif %}>
+        {% for lvl in levels %}<option value="{{ lvl }}" {% if lvl == p.level %}selected{% endif %}>{{ lvl }}</option>{% endfor %}
+      </select>
+      <input name="daily_cap" type="number" min="0" placeholder="cap" value="{{ p.daily_cap if p.daily_cap is not none else '' }}" size="4">
+      <input name="threshold" type="number" min="0" max="1" step="0.01" placeholder="0.85" value="{{ p.threshold if p.threshold is not none else '' }}" size="5">
+      <input name="note" placeholder="note" value="{{ p.note or '' }}">
+      <button type="submit" class="btn">Save</button>
+    </form>
+  </td>
+</tr>

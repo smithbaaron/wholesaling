@@ -1,0 +1,10 @@
+<li class="item result {{ 'ok' if ok else 'error' }}" id="item-{{ message_id }}" data-message-id="{{ message_id }}">
+  {% if ok %}
+  <strong>{{ 'Approved' if approved else 'Rejected' }}{% if edited %} with edits{% endif %}.</strong>
+  Signalled <code>{{ workflow_id }}</code>; the row is now <code>{{ policy_decision }}</code>.
+  {% if reason %}<span class="dim">Reason: {{ reason }}</span>{% endif %}
+  {% else %}
+  <strong>Not applied.</strong> {{ detail }}
+  <span class="dim">The draft is still queued; reload and try again.</span>
+  {% endif %}
+</li>
