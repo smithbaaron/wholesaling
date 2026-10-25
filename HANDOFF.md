@@ -1,5 +1,11 @@
 # HANDOFF.md
 
+> **Superseded 2026-10-25 (cloud session).** Steps 1–3 are complete and pushed to
+> https://github.com/smithbaaron/wholesaling with CI green. See `docs/MILESTONE-01.md` for the
+> current state, blockers and next steps. The text below is the original laptop → cloud handoff,
+> kept for history.
+
+
 Written 2026-10-25 at the user's request to stop all work and hand off to a cloud session.
 Everything below is the true state on disk at that moment. Nothing is deployed, no integration is
 live, no credentials exist.
