@@ -19,6 +19,7 @@ from temporalio.worker import Worker
 from wholesaling.activities import graph as acts
 from wholesaling.config.settings import Settings
 from wholesaling.db.models import AuditEvent, Message
+from wholesaling.db.models.enums import Direction
 from wholesaling.integrations.graph import MockGraphGateway
 from wholesaling.workers.main import ACTIVITIES, WORKFLOWS, build_worker
 from wholesaling.workflows import SCHEDULES
@@ -172,8 +173,14 @@ async def test_inbound_workflow_persists_message_once(
         task_queue=TASK_QUEUE,
     )
     assert result.found and result.created
-    count = (await session.execute(select(func.count()).select_from(Message))).scalar_one()
-    assert count == 1
+    # INV-24: one inbound notification -> exactly one inbound row. The pipeline may add an
+    # outbound reply *draft* row (BO-07c), so count inbound rows only.
+    inbound_count = (
+        await session.execute(
+            select(func.count()).select_from(Message).where(Message.direction == Direction.IN)
+        )
+    ).scalar_one()
+    assert inbound_count == 1
 
 
 @pytest_temporal
