@@ -1,0 +1,569 @@
+[
+ {
+  "market": {
+   "name": "Houston",
+   "state": "TX"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.27,
+  "cash_share": 0.38,
+  "repeat_buyer_count": 160,
+  "i2i_resale_share": 0.09,
+  "cash_vs_retail_spread": 0.24,
+  "flip_profit_median": "52000",
+  "distress": {
+   "pre_foreclosure": 6.5,
+   "tax_delinquent": 9.0,
+   "probate": 3.2,
+   "absentee": 14.0,
+   "vacancy": 5.5
+  },
+  "days_on_market": 38,
+  "months_inventory": 3.1,
+  "sold_trend": 0.04,
+  "share_in_band": 0.58,
+  "median_price": "262000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Dallas-Fort Worth",
+   "state": "TX"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.154,
+  "cash_share": 0.272,
+  "repeat_buyer_count": 113,
+  "i2i_resale_share": 0.043,
+  "cash_vs_retail_spread": 0.177,
+  "flip_profit_median": "34000",
+  "distress": {
+   "pre_foreclosure": 5.8,
+   "tax_delinquent": 2.8,
+   "probate": 1.5,
+   "absentee": 19.3,
+   "vacancy": 4.8
+  },
+  "days_on_market": 49,
+  "months_inventory": 1.6,
+  "sold_trend": 0.077,
+  "share_in_band": 0.25,
+  "median_price": "340000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "San Antonio",
+   "state": "TX"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.248,
+  "cash_share": 0.254,
+  "repeat_buyer_count": 82,
+  "i2i_resale_share": 0.049,
+  "cash_vs_retail_spread": 0.175,
+  "flip_profit_median": "53000",
+  "distress": {
+   "pre_foreclosure": 1.2,
+   "tax_delinquent": 4.5,
+   "probate": 0.6,
+   "absentee": 5.6,
+   "vacancy": 7.8
+  },
+  "days_on_market": 64,
+  "months_inventory": 6.2,
+  "sold_trend": -0.149,
+  "share_in_band": 0.438,
+  "median_price": "265000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Austin",
+   "state": "TX"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.18,
+  "cash_share": 0.242,
+  "repeat_buyer_count": 77,
+  "i2i_resale_share": 0.09,
+  "cash_vs_retail_spread": 0.176,
+  "flip_profit_median": "41000",
+  "distress": {
+   "pre_foreclosure": 2.8,
+   "tax_delinquent": 13.0,
+   "probate": 2.6,
+   "absentee": 16.4,
+   "vacancy": 4.4
+  },
+  "days_on_market": 75,
+  "months_inventory": 2.2,
+  "sold_trend": -0.123,
+  "share_in_band": 0.05,
+  "median_price": "430000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Atlanta",
+   "state": "GA"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.203,
+  "cash_share": 0.232,
+  "repeat_buyer_count": 23,
+  "i2i_resale_share": 0.06,
+  "cash_vs_retail_spread": 0.199,
+  "flip_profit_median": "28000",
+  "distress": {
+   "pre_foreclosure": 9.0,
+   "tax_delinquent": 7.2,
+   "probate": 0.5,
+   "absentee": 18.5,
+   "vacancy": 5.8
+  },
+  "days_on_market": 63,
+  "months_inventory": 2.0,
+  "sold_trend": -0.065,
+  "share_in_band": 0.225,
+  "median_price": "350000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Phoenix",
+   "state": "AZ"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.236,
+  "cash_share": 0.427,
+  "repeat_buyer_count": 137,
+  "i2i_resale_share": 0.081,
+  "cash_vs_retail_spread": 0.212,
+  "flip_profit_median": "40000",
+  "distress": {
+   "pre_foreclosure": 7.4,
+   "tax_delinquent": 12.1,
+   "probate": 2.4,
+   "absentee": 10.6,
+   "vacancy": 6.7
+  },
+  "days_on_market": 76,
+  "months_inventory": 3.0,
+  "sold_trend": -0.062,
+  "share_in_band": 0.05,
+  "median_price": "420000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Tampa",
+   "state": "FL"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.191,
+  "cash_share": 0.259,
+  "repeat_buyer_count": 118,
+  "i2i_resale_share": 0.094,
+  "cash_vs_retail_spread": 0.241,
+  "flip_profit_median": "69000",
+  "distress": {
+   "pre_foreclosure": 7.9,
+   "tax_delinquent": 11.5,
+   "probate": 2.7,
+   "absentee": 17.6,
+   "vacancy": 1.6
+  },
+  "days_on_market": 74,
+  "months_inventory": 2.4,
+  "sold_trend": 0.088,
+  "share_in_band": 0.2,
+  "median_price": "360000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Orlando",
+   "state": "FL"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.177,
+  "cash_share": 0.268,
+  "repeat_buyer_count": 149,
+  "i2i_resale_share": 0.028,
+  "cash_vs_retail_spread": 0.147,
+  "flip_profit_median": "36000",
+  "distress": {
+   "pre_foreclosure": 4.6,
+   "tax_delinquent": 11.7,
+   "probate": 1.1,
+   "absentee": 7.3,
+   "vacancy": 4.4
+  },
+  "days_on_market": 57,
+  "months_inventory": 3.5,
+  "sold_trend": 0.103,
+  "share_in_band": 0.188,
+  "median_price": "365000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Jacksonville",
+   "state": "FL"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.127,
+  "cash_share": 0.343,
+  "repeat_buyer_count": 109,
+  "i2i_resale_share": 0.057,
+  "cash_vs_retail_spread": 0.214,
+  "flip_profit_median": null,
+  "distress": {
+   "pre_foreclosure": 6.6,
+   "tax_delinquent": 5.6,
+   "probate": 0.9,
+   "absentee": 7.2,
+   "vacancy": 7.0
+  },
+  "days_on_market": 27,
+  "months_inventory": 5.2,
+  "sold_trend": -0.075,
+  "share_in_band": 0.35,
+  "median_price": "300000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Charlotte",
+   "state": "NC"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.176,
+  "cash_share": 0.208,
+  "repeat_buyer_count": 23,
+  "i2i_resale_share": 0.054,
+  "cash_vs_retail_spread": 0.089,
+  "flip_profit_median": "50000",
+  "distress": {
+   "pre_foreclosure": 8.5,
+   "tax_delinquent": 3.3,
+   "probate": 3.0,
+   "absentee": 9.0,
+   "vacancy": 7.2
+  },
+  "days_on_market": 39,
+  "months_inventory": 4.7,
+  "sold_trend": -0.097,
+  "share_in_band": 0.175,
+  "median_price": "370000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Nashville",
+   "state": "TN"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.173,
+  "cash_share": 0.327,
+  "repeat_buyer_count": 57,
+  "i2i_resale_share": 0.049,
+  "cash_vs_retail_spread": 0.176,
+  "flip_profit_median": "31000",
+  "distress": {
+   "pre_foreclosure": 5.0,
+   "tax_delinquent": 13.6,
+   "probate": 3.9,
+   "absentee": 6.0,
+   "vacancy": 6.2
+  },
+  "days_on_market": 28,
+  "months_inventory": 3.0,
+  "sold_trend": 0.104,
+  "share_in_band": 0.075,
+  "median_price": "410000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Memphis",
+   "state": "TN"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.119,
+  "cash_share": 0.352,
+  "repeat_buyer_count": 53,
+  "i2i_resale_share": 0.032,
+  "cash_vs_retail_spread": 0.211,
+  "flip_profit_median": null,
+  "distress": {
+   "pre_foreclosure": 6.5,
+   "tax_delinquent": 4.5,
+   "probate": 3.4,
+   "absentee": 8.4,
+   "vacancy": 5.0
+  },
+  "days_on_market": 74,
+  "months_inventory": 3.7,
+  "sold_trend": 0.041,
+  "share_in_band": 0.625,
+  "median_price": "190000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Birmingham",
+   "state": "AL"
+  },
+  "data_available": false,
+  "entity_purchase_share": 0.0,
+  "cash_share": 0.0,
+  "repeat_buyer_count": 0,
+  "i2i_resale_share": 0.0,
+  "cash_vs_retail_spread": 0.0,
+  "flip_profit_median": null,
+  "distress": {
+   "pre_foreclosure": 0.0,
+   "tax_delinquent": 0.0,
+   "probate": 0.0,
+   "absentee": 0.0,
+   "vacancy": 0.0
+  },
+  "days_on_market": 0.0,
+  "months_inventory": 0.0,
+  "sold_trend": 0.0,
+  "share_in_band": 0.0,
+  "median_price": null,
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Oklahoma City",
+   "state": "OK"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.14,
+  "cash_share": 0.326,
+  "repeat_buyer_count": 28,
+  "i2i_resale_share": 0.055,
+  "cash_vs_retail_spread": 0.206,
+  "flip_profit_median": null,
+  "distress": {
+   "pre_foreclosure": 6.9,
+   "tax_delinquent": 9.9,
+   "probate": 1.1,
+   "absentee": 13.1,
+   "vacancy": 8.4
+  },
+  "days_on_market": 57,
+  "months_inventory": 2.7,
+  "sold_trend": -0.051,
+  "share_in_band": 0.563,
+  "median_price": "215000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Kansas City",
+   "state": "MO"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.214,
+  "cash_share": 0.255,
+  "repeat_buyer_count": 171,
+  "i2i_resale_share": 0.045,
+  "cash_vs_retail_spread": 0.221,
+  "flip_profit_median": null,
+  "distress": {
+   "pre_foreclosure": 3.0,
+   "tax_delinquent": 12.8,
+   "probate": 3.9,
+   "absentee": 12.1,
+   "vacancy": 5.4
+  },
+  "days_on_market": 75,
+  "months_inventory": 4.0,
+  "sold_trend": 0.104,
+  "share_in_band": 0.475,
+  "median_price": "250000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "St. Louis",
+   "state": "MO"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.134,
+  "cash_share": 0.411,
+  "repeat_buyer_count": 143,
+  "i2i_resale_share": 0.038,
+  "cash_vs_retail_spread": 0.133,
+  "flip_profit_median": "29000",
+  "distress": {
+   "pre_foreclosure": 4.0,
+   "tax_delinquent": 10.1,
+   "probate": 1.5,
+   "absentee": 14.4,
+   "vacancy": 3.9
+  },
+  "days_on_market": 72,
+  "months_inventory": 2.3,
+  "sold_trend": -0.06,
+  "share_in_band": 0.55,
+  "median_price": "220000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Indianapolis",
+   "state": "IN"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.276,
+  "cash_share": 0.283,
+  "repeat_buyer_count": 114,
+  "i2i_resale_share": 0.091,
+  "cash_vs_retail_spread": 0.115,
+  "flip_profit_median": "21000",
+  "distress": {
+   "pre_foreclosure": 3.7,
+   "tax_delinquent": 7.5,
+   "probate": 2.9,
+   "absentee": 12.6,
+   "vacancy": 2.7
+  },
+  "days_on_market": 35,
+  "months_inventory": 2.2,
+  "sold_trend": -0.015,
+  "share_in_band": 0.5,
+  "median_price": "240000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Columbus",
+   "state": "OH"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.214,
+  "cash_share": 0.34,
+  "repeat_buyer_count": 178,
+  "i2i_resale_share": 0.074,
+  "cash_vs_retail_spread": 0.132,
+  "flip_profit_median": null,
+  "distress": {
+   "pre_foreclosure": 3.3,
+   "tax_delinquent": 12.7,
+   "probate": 0.5,
+   "absentee": 8.9,
+   "vacancy": 2.0
+  },
+  "days_on_market": 65,
+  "months_inventory": 3.4,
+  "sold_trend": 0.016,
+  "share_in_band": 0.413,
+  "median_price": "275000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Cleveland",
+   "state": "OH"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.19,
+  "cash_share": 0.365,
+  "repeat_buyer_count": 76,
+  "i2i_resale_share": 0.105,
+  "cash_vs_retail_spread": 0.15,
+  "flip_profit_median": null,
+  "distress": {
+   "pre_foreclosure": 4.2,
+   "tax_delinquent": 8.1,
+   "probate": 3.5,
+   "absentee": 5.0,
+   "vacancy": 4.2
+  },
+  "days_on_market": 40,
+  "months_inventory": 3.3,
+  "sold_trend": 0.048,
+  "share_in_band": 0.7,
+  "median_price": "160000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Cincinnati",
+   "state": "OH"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.144,
+  "cash_share": 0.299,
+  "repeat_buyer_count": 80,
+  "i2i_resale_share": 0.099,
+  "cash_vs_retail_spread": 0.226,
+  "flip_profit_median": "27000",
+  "distress": {
+   "pre_foreclosure": 8.3,
+   "tax_delinquent": 11.7,
+   "probate": 0.7,
+   "absentee": 14.9,
+   "vacancy": 7.1
+  },
+  "days_on_market": 77,
+  "months_inventory": 4.8,
+  "sold_trend": 0.019,
+  "share_in_band": 0.513,
+  "median_price": "235000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ },
+ {
+  "market": {
+   "name": "Detroit",
+   "state": "MI"
+  },
+  "data_available": true,
+  "entity_purchase_share": 0.13,
+  "cash_share": 0.4,
+  "repeat_buyer_count": 54,
+  "i2i_resale_share": 0.087,
+  "cash_vs_retail_spread": 0.222,
+  "flip_profit_median": "68000",
+  "distress": {
+   "pre_foreclosure": 8.6,
+   "tax_delinquent": 3.3,
+   "probate": 1.8,
+   "absentee": 17.5,
+   "vacancy": 9.0
+  },
+  "days_on_market": 46,
+  "months_inventory": 4.9,
+  "sold_trend": 0.085,
+  "share_in_band": 0.8,
+  "median_price": "120000",
+  "source": "mock_market_signals",
+  "retrieved_at": "2026-10-01T06:00:00+00:00"
+ }
+]

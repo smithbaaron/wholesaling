@@ -1,0 +1,1359 @@
+{
+ "BAYOU CAPITAL PARTNERS LLC": [
+  {
+   "channel": "email",
+   "value": "deals@bayoucapitalpartners.com",
+   "source": "company_website",
+   "provenance": "Contact page of bayoucapitalpartners.com",
+   "confidence": 0.9,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://bayoucapitalpartners.example/contact"
+  },
+  {
+   "channel": "email",
+   "value": "Deals@BayouCapitalPartners.com",
+   "source": "tx_sos_filing",
+   "provenance": "TX SOS filing",
+   "confidence": 0.7,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  },
+  {
+   "channel": "email",
+   "value": "info@bayoucapitalpartners.com",
+   "source": "company_website",
+   "provenance": "Footer",
+   "confidence": 0.6,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  },
+  {
+   "channel": "email",
+   "value": "deals@bayou",
+   "source": "web_scrape",
+   "provenance": "Broken mailto",
+   "confidence": 0.2,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  },
+  {
+   "channel": "phone",
+   "value": "(713) 555-0142",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.8,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  },
+  {
+   "channel": "phone",
+   "value": "713-555-0142",
+   "source": "tx_sos_filing",
+   "provenance": "TX SOS filing",
+   "confidence": 0.6,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  },
+  {
+   "channel": "address",
+   "value": "4400 Post Oak Pkwy Ste 200, Houston, TX 77027",
+   "source": "deed",
+   "provenance": "Deed",
+   "confidence": 0.9,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  }
+ ],
+ "BLUE ASSETS INC 1": [
+  {
+   "channel": "email",
+   "value": "contact@blueassetsinc1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.89,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://blueassetsinc1.example/contact"
+  }
+ ],
+ "BLUE ASSETS LLC 2": [
+  {
+   "channel": "email",
+   "value": "contact@blueassetsllc2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.52,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://blueassetsllc2.example/contact"
+  }
+ ],
+ "BLUE ASSETS LLC 3": [
+  {
+   "channel": "email",
+   "value": "contact@blueassetsllc3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.65,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://blueassetsllc3.example/contact"
+  }
+ ],
+ "BLUE ASSETS TRUST 6": [
+  {
+   "channel": "email",
+   "value": "contact@blueassetstrust6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.78,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://blueassetstrust6.example/contact"
+  }
+ ],
+ "BLUE CAPITAL LLC 0": [
+  {
+   "channel": "email",
+   "value": "contact@bluecapitalllc0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.63,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://bluecapitalllc0.example/contact"
+  }
+ ],
+ "BLUE CAPITAL LLC 7": [
+  {
+   "channel": "email",
+   "value": "contact@bluecapitalllc7.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.8,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://bluecapitalllc7.example/contact"
+  }
+ ],
+ "BLUE CAPITAL TRUST 3": [
+  {
+   "channel": "email",
+   "value": "contact@bluecapitaltrust3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.8,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://bluecapitaltrust3.example/contact"
+  }
+ ],
+ "BLUE CAPITAL TRUST 5": [
+  {
+   "channel": "email",
+   "value": "contact@bluecapitaltrust5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.89,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://bluecapitaltrust5.example/contact"
+  }
+ ],
+ "BLUE EQUITY LLC 3": [
+  {
+   "channel": "email",
+   "value": "contact@blueequityllc3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.68,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://blueequityllc3.example/contact"
+  }
+ ],
+ "BLUE HOLDINGS LLC 2": [
+  {
+   "channel": "email",
+   "value": "contact@blueholdingsllc2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.82,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://blueholdingsllc2.example/contact"
+  }
+ ],
+ "BLUE HOLDINGS LP 0": [
+  {
+   "channel": "email",
+   "value": "contact@blueholdingslp0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.78,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://blueholdingslp0.example/contact"
+  }
+ ],
+ "BLUE HOLDINGS TRUST 6": [
+  {
+   "channel": "email",
+   "value": "contact@blueholdingstrust6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.83,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://blueholdingstrust6.example/contact"
+  }
+ ],
+ "BLUE REALTY LLC 6": [
+  {
+   "channel": "email",
+   "value": "contact@bluerealtyllc6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.71,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://bluerealtyllc6.example/contact"
+  }
+ ],
+ "BLUE REALTY LLC 8": [
+  {
+   "channel": "email",
+   "value": "contact@bluerealtyllc8.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.89,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://bluerealtyllc8.example/contact"
+  }
+ ],
+ "CEDAR ASSETS LLC 0": [
+  {
+   "channel": "email",
+   "value": "contact@cedarassetsllc0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.79,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarassetsllc0.example/contact"
+  }
+ ],
+ "CEDAR ASSETS LLC 4": [
+  {
+   "channel": "email",
+   "value": "contact@cedarassetsllc4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.64,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarassetsllc4.example/contact"
+  }
+ ],
+ "CEDAR ASSETS LLC 9": [
+  {
+   "channel": "email",
+   "value": "contact@cedarassetsllc9.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.5,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarassetsllc9.example/contact"
+  }
+ ],
+ "CEDAR EQUITY TRUST 8": [
+  {
+   "channel": "email",
+   "value": "contact@cedarequitytrust8.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.63,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarequitytrust8.example/contact"
+  }
+ ],
+ "CEDAR HOLDINGS LP 1": [
+  {
+   "channel": "email",
+   "value": "contact@cedarholdingslp1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.73,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarholdingslp1.example/contact"
+  }
+ ],
+ "CEDAR HOMES INC 9": [
+  {
+   "channel": "email",
+   "value": "contact@cedarhomesinc9.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.82,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarhomesinc9.example/contact"
+  }
+ ],
+ "CEDAR HOMES LLC 7": [
+  {
+   "channel": "email",
+   "value": "contact@cedarhomesllc7.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.56,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarhomesllc7.example/contact"
+  }
+ ],
+ "CEDAR HOMES TRUST 5": [
+  {
+   "channel": "email",
+   "value": "contact@cedarhomestrust5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.79,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarhomestrust5.example/contact"
+  }
+ ],
+ "CEDAR PROPERTY LLC 0": [
+  {
+   "channel": "email",
+   "value": "contact@cedarpropertyllc0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.56,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarpropertyllc0.example/contact"
+  }
+ ],
+ "CEDAR PROPERTY LLC 4": [
+  {
+   "channel": "email",
+   "value": "contact@cedarpropertyllc4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.53,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarpropertyllc4.example/contact"
+  }
+ ],
+ "CEDAR PROPERTY TRUST 8": [
+  {
+   "channel": "email",
+   "value": "contact@cedarpropertytrust8.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.53,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarpropertytrust8.example/contact"
+  }
+ ],
+ "CEDAR REALTY LLC 3": [
+  {
+   "channel": "email",
+   "value": "contact@cedarrealtyllc3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.88,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarrealtyllc3.example/contact"
+  }
+ ],
+ "CEDAR REALTY TRUST 1": [
+  {
+   "channel": "email",
+   "value": "contact@cedarrealtytrust1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.73,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarrealtytrust1.example/contact"
+  }
+ ],
+ "CEDAR VENTURES LP 4": [
+  {
+   "channel": "email",
+   "value": "contact@cedarventureslp4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.87,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://cedarventureslp4.example/contact"
+  }
+ ],
+ "FAST CLOSE HOUSTON LLC": [
+  {
+   "channel": "email",
+   "value": "offers@fastclosehouston.com",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.85,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  }
+ ],
+ "GULF COAST RENTALS LLC": [
+  {
+   "channel": "phone",
+   "value": "832-555-0190",
+   "source": "tx_sos_filing",
+   "provenance": "TX SOS filing",
+   "confidence": 0.6,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  },
+  {
+   "channel": "address",
+   "value": "PO Box 8821, Houston, TX 77288",
+   "source": "deed",
+   "provenance": "Deed mailing address",
+   "confidence": 0.9,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  }
+ ],
+ "HARBOR ASSETS INC 2": [
+  {
+   "channel": "email",
+   "value": "contact@harborassetsinc2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.76,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborassetsinc2.example/contact"
+  }
+ ],
+ "HARBOR ASSETS INC 4": [
+  {
+   "channel": "email",
+   "value": "contact@harborassetsinc4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.62,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborassetsinc4.example/contact"
+  }
+ ],
+ "HARBOR CAPITAL LLC 2": [
+  {
+   "channel": "email",
+   "value": "contact@harborcapitalllc2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.76,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborcapitalllc2.example/contact"
+  }
+ ],
+ "HARBOR CAPITAL LP 2": [
+  {
+   "channel": "email",
+   "value": "contact@harborcapitallp2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.86,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborcapitallp2.example/contact"
+  }
+ ],
+ "HARBOR CAPITAL LP 6": [
+  {
+   "channel": "email",
+   "value": "contact@harborcapitallp6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.63,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborcapitallp6.example/contact"
+  }
+ ],
+ "HARBOR EQUITY INC 2": [
+  {
+   "channel": "email",
+   "value": "contact@harborequityinc2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.79,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborequityinc2.example/contact"
+  }
+ ],
+ "HARBOR EQUITY LP 7": [
+  {
+   "channel": "email",
+   "value": "contact@harborequitylp7.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.65,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborequitylp7.example/contact"
+  }
+ ],
+ "HARBOR HOLDINGS LLC 6": [
+  {
+   "channel": "email",
+   "value": "contact@harborholdingsllc6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.79,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborholdingsllc6.example/contact"
+  }
+ ],
+ "HARBOR HOMES INC 4": [
+  {
+   "channel": "email",
+   "value": "contact@harborhomesinc4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.6,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborhomesinc4.example/contact"
+  }
+ ],
+ "HARBOR HOMES TRUST 5": [
+  {
+   "channel": "email",
+   "value": "contact@harborhomestrust5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.59,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborhomestrust5.example/contact"
+  }
+ ],
+ "HARBOR PROPERTY LLC 1": [
+  {
+   "channel": "email",
+   "value": "contact@harborpropertyllc1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.83,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborpropertyllc1.example/contact"
+  }
+ ],
+ "HARBOR PROPERTY LP 3": [
+  {
+   "channel": "email",
+   "value": "contact@harborpropertylp3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.86,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborpropertylp3.example/contact"
+  }
+ ],
+ "HARBOR VENTURES LP 8": [
+  {
+   "channel": "email",
+   "value": "contact@harborventureslp8.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.75,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://harborventureslp8.example/contact"
+  }
+ ],
+ "HEIGHTS HOLDINGS LLC": [
+  {
+   "channel": "email",
+   "value": "hello@heightsholdings.com",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.75,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  }
+ ],
+ "IRON ASSETS LLC 0": [
+  {
+   "channel": "email",
+   "value": "contact@ironassetsllc0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.69,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironassetsllc0.example/contact"
+  }
+ ],
+ "IRON EQUITY LLC 7": [
+  {
+   "channel": "email",
+   "value": "contact@ironequityllc7.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.83,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironequityllc7.example/contact"
+  }
+ ],
+ "IRON HOLDINGS LLC 6": [
+  {
+   "channel": "email",
+   "value": "contact@ironholdingsllc6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.62,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironholdingsllc6.example/contact"
+  }
+ ],
+ "IRON HOMES LLC 1": [
+  {
+   "channel": "email",
+   "value": "contact@ironhomesllc1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.53,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironhomesllc1.example/contact"
+  }
+ ],
+ "IRON HOMES LLC 7": [
+  {
+   "channel": "email",
+   "value": "contact@ironhomesllc7.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.73,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironhomesllc7.example/contact"
+  }
+ ],
+ "IRON PROPERTY LLC 4": [
+  {
+   "channel": "email",
+   "value": "contact@ironpropertyllc4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.83,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironpropertyllc4.example/contact"
+  }
+ ],
+ "IRON PROPERTY LLC 7": [
+  {
+   "channel": "email",
+   "value": "contact@ironpropertyllc7.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.82,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironpropertyllc7.example/contact"
+  }
+ ],
+ "IRON REALTY TRUST 3": [
+  {
+   "channel": "email",
+   "value": "contact@ironrealtytrust3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.8,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironrealtytrust3.example/contact"
+  }
+ ],
+ "IRON VENTURES INC 3": [
+  {
+   "channel": "email",
+   "value": "contact@ironventuresinc3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.89,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironventuresinc3.example/contact"
+  }
+ ],
+ "IRON VENTURES INC 8": [
+  {
+   "channel": "email",
+   "value": "contact@ironventuresinc8.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.6,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironventuresinc8.example/contact"
+  }
+ ],
+ "IRON VENTURES LLC 5": [
+  {
+   "channel": "email",
+   "value": "contact@ironventuresllc5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.53,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://ironventuresllc5.example/contact"
+  }
+ ],
+ "KELLER REALTY INVESTMENTS LLC": [
+  {
+   "channel": "email",
+   "value": "invest@kellerrealtyinv.com",
+   "source": "trec_license",
+   "provenance": "TREC licence record",
+   "confidence": 0.8,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  }
+ ],
+ "LONE STAR FLIPS LLC": [
+  {
+   "channel": "email",
+   "value": "acquisitions@lonestarflips.com",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.85,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  },
+  {
+   "channel": "phone",
+   "value": "281-555-0101",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.8,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  }
+ ],
+ "MARIA HERNANDEZ": [
+  {
+   "channel": "email",
+   "value": "maria.hernandez.htx@gmail.com",
+   "source": "licensed_enrichment",
+   "provenance": "Vendor",
+   "confidence": 0.55,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  },
+  {
+   "channel": "email",
+   "value": "mariahernandezhtx@gmail.com",
+   "source": "web_scrape",
+   "provenance": "Forum",
+   "confidence": 0.3,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": null
+  }
+ ],
+ "OAK CAPITAL LLC 2": [
+  {
+   "channel": "email",
+   "value": "contact@oakcapitalllc2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.85,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://oakcapitalllc2.example/contact"
+  }
+ ],
+ "OAK CAPITAL LLC 8": [
+  {
+   "channel": "email",
+   "value": "contact@oakcapitalllc8.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.81,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://oakcapitalllc8.example/contact"
+  }
+ ],
+ "OAK CAPITAL LP 5": [
+  {
+   "channel": "email",
+   "value": "contact@oakcapitallp5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.62,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://oakcapitallp5.example/contact"
+  }
+ ],
+ "OAK HOMES LLC 9": [
+  {
+   "channel": "email",
+   "value": "contact@oakhomesllc9.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.89,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://oakhomesllc9.example/contact"
+  }
+ ],
+ "OAK HOMES LP 9": [
+  {
+   "channel": "email",
+   "value": "contact@oakhomeslp9.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.55,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://oakhomeslp9.example/contact"
+  }
+ ],
+ "OAK HOMES TRUST 0": [
+  {
+   "channel": "email",
+   "value": "contact@oakhomestrust0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.6,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://oakhomestrust0.example/contact"
+  }
+ ],
+ "OAK PROPERTY LLC 2": [
+  {
+   "channel": "email",
+   "value": "contact@oakpropertyllc2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.61,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://oakpropertyllc2.example/contact"
+  }
+ ],
+ "OAK REALTY INC 5": [
+  {
+   "channel": "email",
+   "value": "contact@oakrealtyinc5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.88,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://oakrealtyinc5.example/contact"
+  }
+ ],
+ "PINE ASSETS INC 8": [
+  {
+   "channel": "email",
+   "value": "contact@pineassetsinc8.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.53,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://pineassetsinc8.example/contact"
+  }
+ ],
+ "PINE CAPITAL LLC 6": [
+  {
+   "channel": "email",
+   "value": "contact@pinecapitalllc6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.72,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://pinecapitalllc6.example/contact"
+  }
+ ],
+ "PINE CAPITAL TRUST 5": [
+  {
+   "channel": "email",
+   "value": "contact@pinecapitaltrust5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.68,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://pinecapitaltrust5.example/contact"
+  }
+ ],
+ "PINE EQUITY LLC 2": [
+  {
+   "channel": "email",
+   "value": "contact@pineequityllc2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.63,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://pineequityllc2.example/contact"
+  }
+ ],
+ "PINE HOMES INC 1": [
+  {
+   "channel": "email",
+   "value": "contact@pinehomesinc1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.59,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://pinehomesinc1.example/contact"
+  }
+ ],
+ "PINE HOMES LP 3": [
+  {
+   "channel": "email",
+   "value": "contact@pinehomeslp3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.74,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://pinehomeslp3.example/contact"
+  }
+ ],
+ "PINE PROPERTY LP 6": [
+  {
+   "channel": "email",
+   "value": "contact@pinepropertylp6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.78,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://pinepropertylp6.example/contact"
+  }
+ ],
+ "PINE PROPERTY TRUST 3": [
+  {
+   "channel": "email",
+   "value": "contact@pinepropertytrust3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.83,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://pinepropertytrust3.example/contact"
+  }
+ ],
+ "PINE PROPERTY TRUST 5": [
+  {
+   "channel": "email",
+   "value": "contact@pinepropertytrust5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.65,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://pinepropertytrust5.example/contact"
+  }
+ ],
+ "PRAIRIE ASSETS LLC 6": [
+  {
+   "channel": "email",
+   "value": "contact@prairieassetsllc6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.7,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairieassetsllc6.example/contact"
+  }
+ ],
+ "PRAIRIE EQUITY LLC 3": [
+  {
+   "channel": "email",
+   "value": "contact@prairieequityllc3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.81,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairieequityllc3.example/contact"
+  }
+ ],
+ "PRAIRIE EQUITY TRUST 2": [
+  {
+   "channel": "email",
+   "value": "contact@prairieequitytrust2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.72,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairieequitytrust2.example/contact"
+  }
+ ],
+ "PRAIRIE HOLDINGS INC 9": [
+  {
+   "channel": "email",
+   "value": "contact@prairieholdingsinc9.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.86,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairieholdingsinc9.example/contact"
+  }
+ ],
+ "PRAIRIE HOMES LP 0": [
+  {
+   "channel": "email",
+   "value": "contact@prairiehomeslp0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.65,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairiehomeslp0.example/contact"
+  }
+ ],
+ "PRAIRIE HOMES TRUST 6": [
+  {
+   "channel": "email",
+   "value": "contact@prairiehomestrust6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.57,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairiehomestrust6.example/contact"
+  }
+ ],
+ "PRAIRIE PROPERTY LLC 6": [
+  {
+   "channel": "email",
+   "value": "contact@prairiepropertyllc6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.7,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairiepropertyllc6.example/contact"
+  }
+ ],
+ "PRAIRIE PROPERTY LLC 9": [
+  {
+   "channel": "email",
+   "value": "contact@prairiepropertyllc9.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.52,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairiepropertyllc9.example/contact"
+  }
+ ],
+ "PRAIRIE PROPERTY LP 5": [
+  {
+   "channel": "email",
+   "value": "contact@prairiepropertylp5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.84,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairiepropertylp5.example/contact"
+  }
+ ],
+ "PRAIRIE PROPERTY TRUST 2": [
+  {
+   "channel": "email",
+   "value": "contact@prairiepropertytrust2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.66,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairiepropertytrust2.example/contact"
+  }
+ ],
+ "PRAIRIE PROPERTY TRUST 4": [
+  {
+   "channel": "email",
+   "value": "contact@prairiepropertytrust4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.71,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairiepropertytrust4.example/contact"
+  }
+ ],
+ "PRAIRIE PROPERTY TRUST 8": [
+  {
+   "channel": "email",
+   "value": "contact@prairiepropertytrust8.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.53,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairiepropertytrust8.example/contact"
+  }
+ ],
+ "PRAIRIE VENTURES LP 1": [
+  {
+   "channel": "email",
+   "value": "contact@prairieventureslp1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.53,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://prairieventureslp1.example/contact"
+  }
+ ],
+ "RED ASSETS LP 0": [
+  {
+   "channel": "email",
+   "value": "contact@redassetslp0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.61,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://redassetslp0.example/contact"
+  }
+ ],
+ "RED ASSETS TRUST 0": [
+  {
+   "channel": "email",
+   "value": "contact@redassetstrust0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.55,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://redassetstrust0.example/contact"
+  }
+ ],
+ "RED CAPITAL LLC 7": [
+  {
+   "channel": "email",
+   "value": "contact@redcapitalllc7.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.66,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://redcapitalllc7.example/contact"
+  }
+ ],
+ "RED EQUITY INC 7": [
+  {
+   "channel": "email",
+   "value": "contact@redequityinc7.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.85,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://redequityinc7.example/contact"
+  }
+ ],
+ "RED HOMES TRUST 1": [
+  {
+   "channel": "email",
+   "value": "contact@redhomestrust1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.79,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://redhomestrust1.example/contact"
+  }
+ ],
+ "RED HOMES TRUST 8": [
+  {
+   "channel": "email",
+   "value": "contact@redhomestrust8.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.62,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://redhomestrust8.example/contact"
+  }
+ ],
+ "RED PROPERTY TRUST 1": [
+  {
+   "channel": "email",
+   "value": "contact@redpropertytrust1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.65,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://redpropertytrust1.example/contact"
+  }
+ ],
+ "RED VENTURES LLC 2": [
+  {
+   "channel": "email",
+   "value": "contact@redventuresllc2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.71,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://redventuresllc2.example/contact"
+  }
+ ],
+ "RIVER ASSETS LLC 6": [
+  {
+   "channel": "email",
+   "value": "contact@riverassetsllc6.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.89,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://riverassetsllc6.example/contact"
+  }
+ ],
+ "RIVER CAPITAL LLC 0": [
+  {
+   "channel": "email",
+   "value": "contact@rivercapitalllc0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.56,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://rivercapitalllc0.example/contact"
+  }
+ ],
+ "RIVER CAPITAL LP 5": [
+  {
+   "channel": "email",
+   "value": "contact@rivercapitallp5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.77,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://rivercapitallp5.example/contact"
+  }
+ ],
+ "RIVER HOLDINGS INC 0": [
+  {
+   "channel": "email",
+   "value": "contact@riverholdingsinc0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.62,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://riverholdingsinc0.example/contact"
+  }
+ ],
+ "RIVER HOLDINGS LLC 4": [
+  {
+   "channel": "email",
+   "value": "contact@riverholdingsllc4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.52,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://riverholdingsllc4.example/contact"
+  }
+ ],
+ "RIVER HOLDINGS LP 0": [
+  {
+   "channel": "email",
+   "value": "contact@riverholdingslp0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.53,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://riverholdingslp0.example/contact"
+  }
+ ],
+ "RIVER HOMES LLC 4": [
+  {
+   "channel": "email",
+   "value": "contact@riverhomesllc4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.56,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://riverhomesllc4.example/contact"
+  }
+ ],
+ "RIVER HOMES LP 2": [
+  {
+   "channel": "email",
+   "value": "contact@riverhomeslp2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.84,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://riverhomeslp2.example/contact"
+  }
+ ],
+ "RIVER HOMES TRUST 3": [
+  {
+   "channel": "email",
+   "value": "contact@riverhomestrust3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.55,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://riverhomestrust3.example/contact"
+  }
+ ],
+ "RIVER PROPERTY LLC 0": [
+  {
+   "channel": "email",
+   "value": "contact@riverpropertyllc0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.58,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://riverpropertyllc0.example/contact"
+  }
+ ],
+ "RIVER VENTURES LP 3": [
+  {
+   "channel": "email",
+   "value": "contact@riverventureslp3.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.65,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://riverventureslp3.example/contact"
+  }
+ ],
+ "RIVER VENTURES LP 4": [
+  {
+   "channel": "email",
+   "value": "contact@riverventureslp4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.59,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://riverventureslp4.example/contact"
+  }
+ ],
+ "SUMMIT CAPITAL TRUST 1": [
+  {
+   "channel": "email",
+   "value": "contact@summitcapitaltrust1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.73,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://summitcapitaltrust1.example/contact"
+  }
+ ],
+ "SUMMIT EQUITY LLC 5": [
+  {
+   "channel": "email",
+   "value": "contact@summitequityllc5.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.79,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://summitequityllc5.example/contact"
+  }
+ ],
+ "SUMMIT HOLDINGS INC 1": [
+  {
+   "channel": "email",
+   "value": "contact@summitholdingsinc1.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.62,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://summitholdingsinc1.example/contact"
+  }
+ ],
+ "SUMMIT HOLDINGS INC 7": [
+  {
+   "channel": "email",
+   "value": "contact@summitholdingsinc7.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.72,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://summitholdingsinc7.example/contact"
+  }
+ ],
+ "SUMMIT HOLDINGS LLC 0": [
+  {
+   "channel": "email",
+   "value": "contact@summitholdingsllc0.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.52,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://summitholdingsllc0.example/contact"
+  }
+ ],
+ "SUMMIT HOMES LLC 4": [
+  {
+   "channel": "email",
+   "value": "contact@summithomesllc4.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.77,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://summithomesllc4.example/contact"
+  }
+ ],
+ "SUMMIT PROPERTY TRUST 2": [
+  {
+   "channel": "email",
+   "value": "contact@summitpropertytrust2.example",
+   "source": "company_website",
+   "provenance": "Contact page",
+   "confidence": 0.7,
+   "use_limitations": "Business contact; email outreach only, no SMS or calls",
+   "provenance_url": "https://summitpropertytrust2.example/contact"
+  }
+ ]
+}
