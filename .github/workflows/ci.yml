@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write  # read for checkout; write only to post a commit comment with the pytest log on failure
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -68,7 +68,20 @@ jobs:
         run: >
           uv run pytest
           --cov=wholesaling --cov-report=term-missing --cov-report=xml:coverage.xml
-          -q
+          -q -rA 2>&1 | tee pytest.log; exit "${PIPESTATUS[0]}"
+
+      - name: Post pytest log on the commit when tests fail
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "CI pytest failed on ${GITHUB_SHA} (${GITHUB_RUN_ID}). Last 300 lines:"
+            echo '```'
+            tail -n 300 pytest.log
+            echo '```'
+          } > comment.md
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -F body=@comment.md || true
 
       - name: Upload coverage report
         if: always()
