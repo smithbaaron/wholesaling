@@ -9,27 +9,43 @@ row there. The three source documents sit beside it.
 
 ## Status
 
-Build order step 1 to 3 (Foundation). Nothing is deployed. No integration is live. Every external
-service runs in `mock` mode until its human-action checkpoint in [docs/CHECKPOINTS.md](docs/CHECKPOINTS.md)
-is cleared.
+Build order steps 1 to 3 (Foundation) are in progress in the cloud session that took over from
+[HANDOFF.md](HANDOFF.md):
 
-## Quick start (no services needed)
+| Step | State |
+|---|---|
+| BO-01 Repo, CI, `.env.example`, requirements matrix, deployment and docs artifacts | done on disk: CI workflow, Dockerfile, `.railway/railway.py`, docker-compose, SETUP, CHECKPOINTS, RUNBOOK. Not pushed: no Git remote yet (ENG-Q12). |
+| BO-02 Postgres schema and migrations | in progress (`wholesaling/db/models`, repositories, Alembic) |
+| BO-03 Temporal worker, HelloWorkflow, health endpoint, Railway deploy | code in progress (`wholesaling/api`, `workers`, `workflows`, `activities`, `integrations/temporal`); Railway deploy blocked on checkpoints PRE-07 and PRE-08 |
+
+Nothing is deployed. No integration is live. Every external service runs in `mock` mode until its
+human-action checkpoint in [docs/CHECKPOINTS.md](docs/CHECKPOINTS.md) is cleared, and no 24/7
+claim is made until the restart test in [docs/RUNBOOK.md](docs/RUNBOOK.md) passes (RUL-09).
+
+## Quick start
+
+Full walkthrough, Windows and macOS/Linux, in [SETUP.md](SETUP.md). The short version, no services
+needed:
 
 ```bash
-uv sync
+uv sync --frozen
+cp .env.example .env
 uv run pytest
-uv run ruff check . && uv run mypy
+uv run ruff check . && uv run ruff format --check . && uv run mypy
 ```
 
-With a local Temporal dev server and the API:
+Local Temporal dev server, worker and API (three terminals; everything external stays mocked):
 
 ```bash
-temporal server start-dev
-uv run wholesaling-worker
-uv run wholesaling-api
+temporal server start-dev --db-filename var/temporal.db
+TEMPORAL_MODE=live SERVICE_ROLE=worker uv run wholesaling-worker
+TEMPORAL_MODE=live SERVICE_ROLE=api    uv run wholesaling-api     # http://localhost:8000/health
 ```
 
-See [SETUP.md](SETUP.md) for the full environment and checkpoint walkthrough.
+Docker is optional; `docker-compose.yml` gives local Postgres + Temporal for those who have it.
+
+Deploying and operating: [docs/RUNBOOK.md](docs/RUNBOOK.md). What you must do by hand before any
+integration goes live: [docs/CHECKPOINTS.md](docs/CHECKPOINTS.md).
 
 ## Layout
 

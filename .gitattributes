@@ -1,0 +1,38 @@
+# Normalise line endings to LF in the repository. The original working copy is Windows
+# (core.autocrlf=input); CI, Docker and Railway are Linux. Shell scripts and Dockerfiles must stay LF.
+* text=auto eol=lf
+
+# Text files that must always be LF regardless of platform.
+*.py       text eol=lf
+*.toml     text eol=lf
+*.yaml     text eol=lf
+*.yml      text eol=lf
+*.md       text eol=lf
+*.sh       text eol=lf
+*.mako     text eol=lf
+*.ini      text eol=lf
+*.json     text eol=lf
+*.html     text eol=lf
+*.j2       text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.env.example text eol=lf
+.python-version text eol=lf
+uv.lock    text eol=lf
+
+# PowerShell scripts keep CRLF so Windows PowerShell 5.1 parses them reliably.
+*.ps1      text eol=crlf
+
+# Binary source documents: never diff or merge as text.
+*.docx     binary
+*.pdf      binary
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.woff     binary
+*.woff2    binary
+*.db       binary

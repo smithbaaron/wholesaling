@@ -1,0 +1,117 @@
+# Local services for developers who have Docker (REQUIREMENTS.md ENG-Q7). Docker is OPTIONAL:
+# the no-Docker path (Temporal CLI `temporal server start-dev` + SQLite tests) is what the original
+# machine uses and is documented first in SETUP.md.
+#
+#   docker compose up -d postgres temporal        # just the services; run api/worker with uv
+#   docker compose --profile app up --build       # also build and run api + worker from the Dockerfile
+#
+# Ports on the host: Postgres 5432, Temporal gRPC 7233, Temporal UI http://localhost:8233,
+# API http://localhost:8000 (profile "app" only).
+#
+# The api/worker services read ./.env (copy .env.example). Any variable set in `environment:` below
+# overrides .env so the containers reach the other containers by service name, not localhost.
+
+name: wholesaling
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: wholesaling-postgres
+    environment:
+      # Local-only credentials for a database that never leaves your machine. Not a secret.
+      POSTGRES_USER: wholesaling
+      POSTGRES_PASSWORD: wholesaling
+      POSTGRES_DB: wholesaling
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wholesaling -d wholesaling"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  temporal:
+    # Same binary as `temporal server start-dev` on the host: gRPC on 7233, Web UI on 8233 (the
+    # start-dev defaults), namespace "default", no TLS. --db-filename persists workflow history across restarts so the
+    # RUNBOOK restart test can be rehearsed locally.
+    image: temporalio/temporal:latest
+    container_name: wholesaling-temporal
+    command:
+      - server
+      - start-dev
+      - --ip
+      - 0.0.0.0
+      - --db-filename
+      - /data/temporal.db
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    volumes:
+      - temporal-data:/data
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "127.0.0.1:7233"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wholesaling:local
+    container_name: wholesaling-api
+    command: ["wholesaling-api"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_ENV: local
+      SERVICE_ROLE: api
+      PORT: "8000"
+      DATABASE_URL: postgresql+asyncpg://wholesaling:wholesaling@postgres:5432/wholesaling
+      TEMPORAL_MODE: live
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TLS: "false"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+
+  worker:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wholesaling:local
+    container_name: wholesaling-worker
+    command: ["wholesaling-worker"]
+    # The image's HEALTHCHECK curls /health; the worker has no HTTP listener.
+    healthcheck:
+      disable: true
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_ENV: local
+      SERVICE_ROLE: worker
+      DATABASE_URL: postgresql+asyncpg://wholesaling:wholesaling@postgres:5432/wholesaling
+      TEMPORAL_MODE: live
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TLS: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  temporal-data:
