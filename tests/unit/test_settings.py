@@ -17,8 +17,14 @@ def _settings(**env: str) -> Settings:
     return Settings(_env_file=None, **env)  # type: ignore[call-arg]
 
 
-def test_defaults_are_mock_and_local(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("APP_ENV", raising=False)  # CI exports APP_ENV=test
+@pytest.fixture(autouse=True)
+def _clean_settings_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CI exports APP_ENV and DATABASE_URL; every test here must see true defaults."""
+    for field in Settings.model_fields:
+        monkeypatch.delenv(field.upper(), raising=False)
+
+
+def test_defaults_are_mock_and_local() -> None:
     s = _settings()
     assert s.app_env == AppEnv.LOCAL
     assert s.service_role == ServiceRole.API

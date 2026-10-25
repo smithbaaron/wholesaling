@@ -130,7 +130,20 @@ jobs:
         run: uv sync --frozen
 
       - name: Full suite on Postgres (conftest switches the engine when TEST_DATABASE_URL is set)
-        run: uv run pytest -q
+        run: uv run pytest -q -rA 2>&1 | tee pytest.log; exit "${PIPESTATUS[0]}"
+
+      - name: Post pytest log on the commit when tests fail
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "CI (Postgres job) pytest failed on ${GITHUB_SHA} (${GITHUB_RUN_ID}). Last 300 lines:"
+            echo '```'
+            tail -n 300 pytest.log
+            echo '```'
+          } > comment.md
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -F body=@comment.md || true
 
       - name: Postgres-only tests
         # Exit code 5 means "no tests collected": acceptable until BO-02 adds the first
