@@ -27,6 +27,8 @@ from wholesaling.activities.outreach import (
     send_window,
     update_sequence,
 )
+from wholesaling.activities.sheets import reconcile_sources, sync_projection
+from wholesaling.activities.zapier import send_parser_email
 
 __all__ = [
     "apply_human_decision",
@@ -44,6 +46,7 @@ __all__ = [
     "notify_bounce",
     "prepare_step",
     "raise_alert",
+    "reconcile_sources",
     "record_renewal_outcome",
     "renew_subscriptions",
     "run_a1",
@@ -51,6 +54,8 @@ __all__ = [
     "run_m1",
     "send_approved",
     "send_draft",
+    "send_parser_email",
     "send_window",
+    "sync_projection",
     "update_sequence",
 ]

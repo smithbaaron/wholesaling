@@ -17,6 +17,8 @@ from wholesaling.workflows.graph_maintenance import (
     DeltaPollWorkflowInput,
     SubscriptionRenewalInput,
 )
+from wholesaling.workflows.reconciliation import DailyReconciliationInput
+from wholesaling.workflows.sheets_sync import SheetsSyncInput
 
 OverlapPolicy = Literal["skip", "buffer_one", "allow_all"]
 
@@ -77,6 +79,34 @@ SCHEDULES: list[ScheduleSpec] = [
         ),
         requirement="BO-07 / INT-18",
         tags=frozenset({"digest", "reporting"}),
+    ),
+    ScheduleSpec(
+        id="sheets-sync",
+        workflow="SheetsSyncWorkflow",
+        interval=timedelta(minutes=15),
+        args=(SheetsSyncInput(),),
+        overlap="skip",
+        note=(
+            "One-way Postgres -> Google Sheets projection of every tab in TAB_ORDER, idempotent "
+            "by row key; never deletes (deactivated rows change status). Agents never write to "
+            "Sheets directly; Postgres is the only writer of truth."
+        ),
+        requirement="WF-13",
+        tags=frozenset({"sheets"}),
+    ),
+    ScheduleSpec(
+        id="daily-reconciliation",
+        workflow="DailyReconciliationWorkflow",
+        interval=timedelta(days=1),
+        args=(DailyReconciliationInput(),),
+        overlap="skip",
+        note=(
+            "Compares Outlook (Graph delta, last 24 h) with messages and Postgres with every "
+            "Sheets tab; records mismatches as an audit event and raises an alert. Never "
+            "silently overwrites anything (XC-09)."
+        ),
+        requirement="WF-14 / XC-09",
+        tags=frozenset({"sheets", "graph", "reconciliation"}),
     ),
 ]
 

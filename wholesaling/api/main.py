@@ -10,7 +10,7 @@ from fastapi import FastAPI
 
 from wholesaling import __version__
 from wholesaling.api.deps import mount_static
-from wholesaling.api.routes import digest, graph_webhook, health, policies, review
+from wholesaling.api.routes import digest, graph_webhook, health, pilot, policies, review
 from wholesaling.config.settings import Settings, get_settings
 from wholesaling.db.engine import make_engine
 from wholesaling.integrations.temporal import get_temporal
@@ -62,6 +62,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(review.router)
     app.include_router(policies.router)
     app.include_router(digest.router)
+    app.include_router(pilot.router)
     mount_static(app)
     return app
 
