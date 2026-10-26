@@ -2,7 +2,8 @@
 
 REQUIREMENTS.md DM-01, DM-05, DM-06.
 
-Twenty tables: markets, investors, contacts, source_evidence, buy_boxes, search_profiles,
+Twenty-one tables (``contracts`` added in BO-12 / migration 0003): markets, investors, contacts,
+source_evidence, buy_boxes, search_profiles,
 seller_leads, intakes, offers, offer_verifications, property_candidates, matches, threads,
 messages, sequences, suppression, policies, qa_reviews, agent_runs, audit_events.
 """
@@ -12,7 +13,7 @@ from __future__ import annotations
 from wholesaling.db.base import Base
 from wholesaling.db.models import enums
 from wholesaling.db.models.buy_boxes import DEFAULT_BUY_BOX_KEY, BuyBox, SearchProfile
-from wholesaling.db.models.deals import Match, PropertyCandidate
+from wholesaling.db.models.deals import Contract, Match, PropertyCandidate
 from wholesaling.db.models.investors import Contact, Investor, SourceEvidence
 from wholesaling.db.models.markets import Market
 from wholesaling.db.models.messaging import Message, Sequence, Suppression, Thread
@@ -42,6 +43,7 @@ TABLE_NAMES: frozenset[str] = frozenset(
         "qa_reviews",
         "agent_runs",
         "audit_events",
+        "contracts",
     }
 )
 
@@ -53,6 +55,7 @@ __all__ = [
     "Base",
     "BuyBox",
     "Contact",
+    "Contract",
     "Intake",
     "Investor",
     "Market",

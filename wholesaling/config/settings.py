@@ -79,6 +79,10 @@ class Settings(BaseSettings):
 
     # Data providers: deeds, market signals, contact enrichment (INT-03 OPEN; only mock exists)
     data_provider_mode: Mode = "mock"
+    # Seller-side providers (BO-10): distress lists (INT-04) and skip trace + DNC (INT-05,
+    # PRE-11). Both OPEN; ``live`` is refused by ``get_data_providers``.
+    distress_provider_mode: Mode = "mock"
+    skiptrace_provider_mode: Mode = "mock"
 
     # Google Sheets
     sheets_mode: Mode = "mock"
@@ -101,6 +105,14 @@ class Settings(BaseSettings):
     docusign_user_id: str | None = None
     docusign_account_id: str | None = None
     docusign_private_key_path: str | None = None
+    # JWT grant host: ``account-d.docusign.com`` (developer sandbox) or ``account.docusign.com``.
+    docusign_auth_host: str = "account-d.docusign.com"
+    # Template ids of the attorney-reviewed PSA and Assignment Agreement (PRE-13). Unset = the
+    # live gateway refuses to create that envelope type.
+    docusign_psa_template_id: str | None = None
+    docusign_assignment_template_id: str | None = None
+    # Connect (webhook) HMAC key; the Connect route verifies X-DocuSign-Signature-1 with it.
+    docusign_connect_hmac_key: SecretStr | None = None
 
     # Blob storage
     blob_mode: Literal["local", "s3"] = "local"
@@ -127,6 +139,13 @@ class Settings(BaseSettings):
     # (``activities/sequence_starter.py``); ``config/caps.yaml`` ``outreach_kickoff_daily_cap``
     # overrides it when set. Distinct from the POL-03a send caps on ``policies``.
     outreach_kickoff_daily_cap: int = Field(default=50, ge=0)
+
+    # Public seller web form (SEL-12, INT-26): the base URL S4 puts in the photo-upload link and
+    # the in-process per-IP rate limit / upload limits of ``GET|POST /sell``.
+    public_base_url: str = "http://localhost:8000"
+    sell_form_rate_limit_per_minute: int = Field(default=10, ge=1)
+    sell_form_max_photos: int = Field(default=10, ge=1, le=50)
+    sell_form_max_photo_bytes: int = Field(default=10 * 1024 * 1024, ge=1)
 
     # Alerting
     alert_email_to: str | None = None

@@ -19,6 +19,7 @@ from wholesaling.workflows.graph_maintenance import (
 )
 from wholesaling.workflows.outreach_kickoff import OutreachKickoffWorkflowInput
 from wholesaling.workflows.reconciliation import DailyReconciliationInput
+from wholesaling.workflows.seller_sequence import SellerListRefreshInput
 from wholesaling.workflows.sheets_sync import SheetsSyncInput
 
 OverlapPolicy = Literal["skip", "buffer_one", "allow_all"]
@@ -125,6 +126,22 @@ SCHEDULES: list[ScheduleSpec] = [
         ),
         requirement="WF-14 / XC-09",
         tags=frozenset({"sheets", "graph", "reconciliation"}),
+    ),
+    ScheduleSpec(
+        id="seller-list-refresh",
+        workflow="SellerListRefreshWorkflow",
+        interval=timedelta(days=7),
+        args=(SellerListRefreshInput(),),
+        overlap="skip",
+        note=(
+            "WF-10 weekly S1 refresh for every Active market (SEL-01: Watch / Excluded markets "
+            "are refused by S1, not scheduled around): pulls the distress lists, merges and "
+            "scores stacked signals, dedupes against existing seller_leads and suppression, "
+            "skip-traces new leads (S2, DNC scrub recorded) and starts a SellerSequenceWorkflow "
+            "for every reachable lead not already on a sequence."
+        ),
+        requirement="WF-10 / SEL-02",
+        tags=frozenset({"seller"}),
     ),
 ]
 

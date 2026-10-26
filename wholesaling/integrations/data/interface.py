@@ -13,13 +13,16 @@ from datetime import date
 from typing import Protocol, runtime_checkable
 
 from wholesaling.integrations.base import HealthStatus, IntegrationMode
+from wholesaling.integrations.data.distress import DistressListProvider
 from wholesaling.integrations.data.models import (
     ContactCandidate,
     DeedRecord,
     MarketRef,
     MarketSignals,
+    ParcelRecord,
     ReferenceLists,
 )
+from wholesaling.integrations.data.skiptrace import DncListProvider, SkipTraceProvider
 
 
 @runtime_checkable
@@ -35,6 +38,12 @@ class DeedRecordsProvider(Protocol):
         Must include resales *by* investors (the investor as seller) so A1 can see flip and
         wholesale patterns; A1 filters purchases from resales itself.
         """
+        ...
+
+    async def resolve_parcel(self, address: str) -> ParcelRecord | None:
+        """Parcel behind a street address (S4 "parcel-verified", A7 step 1). ``None`` when the
+        county has no parcel for it. Added for BO-10; implementations may match loosely on the
+        normalised street line."""
         ...
 
     async def healthcheck(self) -> HealthStatus: ...
@@ -82,6 +91,11 @@ class DataProviders:
     signals: MarketSignalsProvider
     contacts: ContactEnrichmentProvider
     reference_lists: ReferenceLists
+    # BO-10 seller side (appended; ``None`` keeps older bundles valid). S1 needs ``distress``,
+    # S2 needs ``skiptrace`` and ``dnc``; both refuse to run without them.
+    distress: DistressListProvider | None = None
+    skiptrace: SkipTraceProvider | None = None
+    dnc: DncListProvider | None = None
 
     async def healthcheck(self) -> list[HealthStatus]:
         return [
@@ -95,5 +109,8 @@ __all__ = [
     "ContactEnrichmentProvider",
     "DataProviders",
     "DeedRecordsProvider",
+    "DistressListProvider",
+    "DncListProvider",
     "MarketSignalsProvider",
+    "SkipTraceProvider",
 ]

@@ -1,4 +1,5 @@
-"""Migration 0001 must produce exactly ``Base.metadata`` and seed the policy rows.
+"""Migrations at head must produce exactly ``Base.metadata`` (0001 + 0002 + 0003 ``contracts``)
+and 0001 must seed the policy rows.
 
 REQUIREMENTS.md DM-04, POL-02.
 """
@@ -66,7 +67,7 @@ async def _run_checks(engine: AsyncEngine) -> None:
         await conn.run_sync(_upgrade)
         tables = await conn.run_sync(_table_names)
         assert tables == set(models.TABLE_NAMES), tables ^ set(models.TABLE_NAMES)
-        assert len(tables) == 20
+        assert len(tables) == len(models.TABLE_NAMES)
         diff = await conn.run_sync(_diff)
         assert diff == [], f"migration drifts from Base.metadata: {diff}"
 
@@ -82,7 +83,7 @@ async def _run_checks(engine: AsyncEngine) -> None:
         assert await conn.run_sync(_table_names) == set()
         # Upgrade is repeatable after a full downgrade.
         await conn.run_sync(_upgrade)
-        assert len(await conn.run_sync(_table_names)) == 20
+        assert len(await conn.run_sync(_table_names)) == len(models.TABLE_NAMES)
 
 
 async def test_upgrade_head_matches_metadata_sqlite(tmp_path: Path) -> None:

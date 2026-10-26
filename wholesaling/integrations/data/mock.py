@@ -10,19 +10,23 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from wholesaling.db.normalize import normalize_entity_name
+from wholesaling.db.normalize import normalize_address, normalize_entity_name
 from wholesaling.integrations.base import HealthStatus, IntegrationMode
+from wholesaling.integrations.data.distress import MockDistressListProvider
 from wholesaling.integrations.data.interface import DataProviders
 from wholesaling.integrations.data.models import (
     ContactCandidate,
     DeedRecord,
     MarketRef,
     MarketSignals,
+    ParcelRecord,
     ReferenceLists,
 )
+from wholesaling.integrations.data.skiptrace import MockDncListProvider, MockSkipTraceProvider
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
@@ -32,6 +36,12 @@ def _load(path: Path) -> Any:
         return json.load(fh)
 
 
+def _street_key(address: str) -> str:
+    """Street line only (before any comma), normalised; the mock matches on it."""
+    line1 = address.split(",")[0].strip()
+    return normalize_address(line1) if line1 else ""
+
+
 @dataclass(slots=True)
 class MockDeedRecordsProvider:
     name: str = "deed_records"
@@ -39,11 +49,37 @@ class MockDeedRecordsProvider:
     records: list[DeedRecord] = field(default_factory=list)
     calls: list[dict[str, Any]] = field(default_factory=list)
     healthy: bool = True
+    # Extra parcels ``resolve_parcel`` knows (BO-10): the distress-list fixture's parcels, so a
+    # seller lead S1 built always parcel-verifies in mock mode.
+    parcels: list[ParcelRecord] = field(default_factory=list)
 
     @classmethod
     def from_fixtures(cls, fixtures_dir: Path = FIXTURES_DIR) -> MockDeedRecordsProvider:
         raw = _load(fixtures_dir / "deeds.json")
-        return cls(records=[DeedRecord.from_json(d) for d in raw])
+        parcels: list[ParcelRecord] = []
+        distress_path = fixtures_dir / "distress.json"
+        if distress_path.exists():
+            for d in _load(distress_path):
+                parcels.append(
+                    ParcelRecord(
+                        parcel_id=str(d["parcel_id"]),
+                        address=str(d["address"]),
+                        city=str(d["city"]),
+                        state=str(d["state"]),
+                        zip=str(d["zip"]),
+                        property_type=d["property_type"],
+                        units=int(d["units"]),
+                        owner_name=d.get("owner_name"),
+                        assessed_value=(
+                            None
+                            if d.get("assessed_value") is None
+                            else Decimal(str(d["assessed_value"]))
+                        ),
+                        source=str(d.get("source", "mock_distress_lists")),
+                        source_ref=d.get("source_ref"),
+                    )
+                )
+        return cls(records=[DeedRecord.from_json(d) for d in raw], parcels=parcels)
 
     async def purchases(self, market: MarketRef, since: date, until: date) -> list[DeedRecord]:
         self.calls.append(
@@ -54,6 +90,33 @@ class MockDeedRecordsProvider:
             for r in self.records
             if r.city == market.name and r.state == market.state and since <= r.sale_date <= until
         ]
+
+    async def resolve_parcel(self, address: str) -> ParcelRecord | None:
+        """Match the normalised street line (and ZIP when given) against the fixture deeds and
+        the distress list, so every address either fixture knows resolves to its parcel (S4
+        "parcel-verified"). Unknown addresses return ``None``."""
+        self.calls.append({"method": "resolve_parcel", "address": address})
+        wanted = _street_key(address)
+        if not wanted:
+            return None
+        for r in self.records:
+            if _street_key(r.address) == wanted:
+                return ParcelRecord(
+                    parcel_id=r.parcel_id,
+                    address=r.address,
+                    city=r.city,
+                    state=r.state,
+                    zip=r.zip,
+                    property_type=r.property_type,
+                    units=r.units,
+                    owner_name=r.buyer_name,
+                    source=r.source,
+                    source_ref=r.source_ref,
+                )
+        for d in self.parcels:
+            if _street_key(d.address) == wanted:
+                return d
+        return None
 
     async def healthcheck(self) -> HealthStatus:
         return HealthStatus(
@@ -146,6 +209,9 @@ def mock_data_providers(fixtures_dir: Path = FIXTURES_DIR) -> DataProviders:
         signals=MockMarketSignalsProvider.from_fixtures(fixtures_dir),
         contacts=MockContactEnrichmentProvider.from_fixtures(fixtures_dir),
         reference_lists=load_reference_lists(fixtures_dir),
+        distress=MockDistressListProvider.from_fixtures(fixtures_dir),
+        skiptrace=MockSkipTraceProvider.from_fixtures(fixtures_dir),
+        dnc=MockDncListProvider.from_fixtures(fixtures_dir),
     )
 
 
@@ -153,7 +219,10 @@ __all__ = [
     "FIXTURES_DIR",
     "MockContactEnrichmentProvider",
     "MockDeedRecordsProvider",
+    "MockDistressListProvider",
+    "MockDncListProvider",
     "MockMarketSignalsProvider",
+    "MockSkipTraceProvider",
     "load_reference_lists",
     "mock_data_providers",
 ]

@@ -112,6 +112,34 @@ class DeedRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class ParcelRecord:
+    """The county parcel behind a street address (``DeedRecordsProvider.resolve_parcel``;
+    S4 "address parcel-verified", A7-02). Facts the county does not publish stay ``None``."""
+
+    parcel_id: str
+    address: str
+    city: str
+    state: str
+    zip: str
+    property_type: PropertyType
+    units: int
+    owner_name: str | None = None
+    year_built: int | None = None
+    sqft: int | None = None
+    beds: int | None = None
+    baths: float | None = None
+    lot_sqft: int | None = None
+    assessed_value: Decimal | None = None
+    source: str = "unknown"
+    source_ref: str | None = None
+
+    def to_json(self) -> dict[str, Any]:
+        d = asdict(self)
+        d["assessed_value"] = None if self.assessed_value is None else str(self.assessed_value)
+        return d
+
+
+@dataclass(frozen=True, slots=True)
 class DistressSignals:
     """Distress supply per 1,000 parcels (M1-02 "Distress supply")."""
 
@@ -250,6 +278,7 @@ __all__ = [
     "Financing",
     "MarketRef",
     "MarketSignals",
+    "ParcelRecord",
     "PropertyType",
     "ReferenceLists",
 ]

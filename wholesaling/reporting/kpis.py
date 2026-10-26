@@ -630,3 +630,153 @@ __all__ = [
     "reviewed_deals",
     "snapshot",
 ]
+
+
+# --------------------------------------------------------------------------------------------
+# BO-12 / BB-11: contracts, closings and realised assignment economics (append-only).
+#
+# These read the ``contracts`` table (migration 0003). ``contracts()`` above keeps its accepted-
+# offer proxy so existing digests do not change; the digest can adopt these when the seller side
+# goes live. Windows are half-open UTC ``[start, end)`` like everything else here.
+# --------------------------------------------------------------------------------------------
+
+
+@dataclass(slots=True)
+class ContractKpis:
+    window_start: datetime
+    window_end: datetime
+    contracts_signed: int = 0
+    contracts_closed: int = 0
+    contracts_dead: int = 0
+    realized_assignment_fees_usd: Decimal = Decimal("0")
+    # Signed PSAs (any time) that have since closed / died: the funnel's conversion so far.
+    signed_total: int = 0
+    closed_total: int = 0
+
+    @property
+    def contract_to_close_rate(self) -> float | None:
+        """Closed / signed over all time (None until the first signed contract)."""
+        return None if self.signed_total == 0 else self.closed_total / self.signed_total
+
+    @property
+    def average_realized_fee_usd(self) -> Decimal | None:
+        if self.contracts_closed == 0:
+            return None
+        return (self.realized_assignment_fees_usd / self.contracts_closed).quantize(Decimal("0.01"))
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "window_start": self.window_start.isoformat(),
+            "window_end": self.window_end.isoformat(),
+            "contracts_signed": self.contracts_signed,
+            "contracts_closed": self.contracts_closed,
+            "contracts_dead": self.contracts_dead,
+            "realized_assignment_fees_usd": str(self.realized_assignment_fees_usd),
+            "signed_total": self.signed_total,
+            "closed_total": self.closed_total,
+            "contract_to_close_rate": self.contract_to_close_rate,
+            "average_realized_fee_usd": (
+                str(self.average_realized_fee_usd)
+                if self.average_realized_fee_usd is not None
+                else None
+            ),
+        }
+
+
+def _contract_model() -> Any:
+    from wholesaling.db.models.deals import Contract
+
+    return Contract
+
+
+def _psa_status() -> Any:
+    from wholesaling.db.models.deals import ContractStatus, ContractType
+
+    return ContractStatus, ContractType
+
+
+async def contracts_signed(session: AsyncSession, start: datetime, end: datetime) -> int:
+    """PSA rows whose human-recorded ``signed_at`` falls in the window (SEL-11)."""
+    contract = _contract_model()
+    _, ctype = _psa_status()
+    return await _count(
+        session,
+        select(func.count())
+        .select_from(contract)
+        .where(
+            contract.type == ctype.PSA,
+            contract.signed_at.is_not(None),
+            contract.signed_at >= _utc(start),
+            contract.signed_at < _utc(end),
+        ),
+    )
+
+
+async def contracts_closed(
+    session: AsyncSession, start: datetime, end: datetime
+) -> tuple[int, Decimal]:
+    """(PSAs closed in the window, sum of their realised assignment fees) - BB-11."""
+    contract = _contract_model()
+    cstatus, ctype = _psa_status()
+    stmt = select(func.count(), func.coalesce(func.sum(contract.realized_assignment_fee), 0)).where(
+        contract.type == ctype.PSA,
+        contract.status == cstatus.CLOSED,
+        contract.closed_at.is_not(None),
+        contract.closed_at >= _utc(start),
+        contract.closed_at < _utc(end),
+    )
+    count, fees = (await session.execute(stmt)).one()
+    return int(count or 0), _d(fees)
+
+
+async def contracts_dead(session: AsyncSession, start: datetime, end: datetime) -> int:
+    """PSAs marked dead (``cancelled``) in the window, by ``updated_at`` (the human's click)."""
+    contract = _contract_model()
+    cstatus, ctype = _psa_status()
+    return await _count(
+        session,
+        select(func.count())
+        .select_from(contract)
+        .where(
+            contract.type == ctype.PSA,
+            contract.status == cstatus.CANCELLED,
+            contract.updated_at >= _utc(start),
+            contract.updated_at < _utc(end),
+        ),
+    )
+
+
+async def contract_to_close_totals(session: AsyncSession) -> tuple[int, int]:
+    """(PSAs ever signed, PSAs closed) over all time, for the contract-to-close rate."""
+    contract = _contract_model()
+    cstatus, ctype = _psa_status()
+    signed = await _count(
+        session,
+        select(func.count())
+        .select_from(contract)
+        .where(contract.type == ctype.PSA, contract.signed_at.is_not(None)),
+    )
+    closed = await _count(
+        session,
+        select(func.count())
+        .select_from(contract)
+        .where(contract.type == ctype.PSA, contract.status == cstatus.CLOSED),
+    )
+    return signed, closed
+
+
+async def contract_kpis(session: AsyncSession, start: datetime, end: datetime) -> ContractKpis:
+    signed = await contracts_signed(session, start, end)
+    closed, fees = await contracts_closed(session, start, end)
+    dead = await contracts_dead(session, start, end)
+    signed_total, closed_total = await contract_to_close_totals(session)
+    return ContractKpis(
+        window_start=_utc(start),
+        window_end=_utc(end),
+        contracts_signed=signed,
+        contracts_closed=closed,
+        contracts_dead=dead,
+        realized_assignment_fees_usd=fees,
+        signed_total=signed_total,
+        closed_total=closed_total,
+    )

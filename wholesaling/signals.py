@@ -46,11 +46,84 @@ class BounceSignal:
 
 SequenceSignal = ReplySignal | OptOutSignal | BounceSignal
 
+# --------------------------------------------------------------------------------------------
+# DispositionWorkflow (WF-06) signals - sent by the /deals operator routes and, later, by the
+# inbound pipeline when a buyer replies. Every payload is optional on the wire so a bare
+# ``client.signal(id, "deal_dead")`` from an operator tool keeps working.
+# --------------------------------------------------------------------------------------------
+
+SIGNAL_BUYER_RESPONSE = "buyer_response"
+SIGNAL_BUYER_SELECTED = "buyer_selected"
+SIGNAL_DEPOSIT_RECEIVED = "deposit_received"
+SIGNAL_DEAL_DEAD = "deal_dead"
+SIGNAL_DEAL_CLOSED = "deal_closed"
+SIGNAL_DEADLINES_UPDATED = "deadlines_updated"
+SIGNAL_HUMAN_DECISION = "human_decision"
+
+
+@dataclass(slots=True)
+class BuyerResponseSignal:
+    """A buyer answered the blast; the row is already written by ``record_buyer_response``."""
+
+    investor_id: str
+    response: str  # "interested" | "pass"
+    proof_of_funds: bool = False
+    deposit_terms: str | None = None
+
+
+@dataclass(slots=True)
+class BuyerSelectedSignal:
+    investor_id: str
+    actor_id: str | None = None
+
+
+@dataclass(slots=True)
+class DepositReceivedSignal:
+    amount: str  # Decimal as text (JSON-safe)
+    received_at: str  # ISO-8601
+    actor_id: str | None = None
+
+
+@dataclass(slots=True)
+class DealDeadSignal:
+    reason: str
+    actor_id: str | None = None
+
+
+@dataclass(slots=True)
+class DealClosedSignal:
+    realized_assignment_fee: str
+    closed_at: str
+    actor_id: str | None = None
+
+
+DispositionSignal = (
+    BuyerResponseSignal
+    | BuyerSelectedSignal
+    | DepositReceivedSignal
+    | DealDeadSignal
+    | DealClosedSignal
+)
+
+
 __all__ = [
     "SIGNAL_BOUNCE",
+    "SIGNAL_BUYER_RESPONSE",
+    "SIGNAL_BUYER_SELECTED",
+    "SIGNAL_DEADLINES_UPDATED",
+    "SIGNAL_DEAL_CLOSED",
+    "SIGNAL_DEAL_DEAD",
+    "SIGNAL_DEPOSIT_RECEIVED",
+    "SIGNAL_HUMAN_DECISION",
     "SIGNAL_OPT_OUT",
     "SIGNAL_REPLY",
     "BounceSignal",
+    "BuyerResponseSignal",
+    "BuyerSelectedSignal",
+    "DealClosedSignal",
+    "DealDeadSignal",
+    "DepositReceivedSignal",
+    "DispositionSignal",
     "OptOutSignal",
     "ReplySignal",
     "SequenceSignal",

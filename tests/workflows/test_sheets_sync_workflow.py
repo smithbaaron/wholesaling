@@ -177,6 +177,8 @@ async def test_buy_box_event_workflow_invokes_parser_when_flag_on(
         task_queue=TASK_QUEUE,
     )
     assert result.parser is not None and result.parser.sent
-    assert result.steps == ["sheets:next_scheduled_sync", "search:not_built", "parser:sent"]
-    assert result.search_profile_id is None and result.matches == []
+    # BO-11 filled the D1 extension point: one profile, one queued BuyBoxSearch (BB-06).
+    assert result.steps[0] == "sheets:next_scheduled_sync" and result.steps[-1] == "parser:sent"
+    assert result.steps[1].startswith("search:queued:buy-box-search:")
+    assert result.search_profile_id is not None and result.matches == []
     assert len(graph.sent) == 1
