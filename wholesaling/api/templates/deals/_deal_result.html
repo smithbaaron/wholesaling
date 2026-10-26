@@ -1,0 +1,13 @@
+<div class="item result {{ 'ok' if ok else 'error' }}" id="result-{{ contract_id }}" data-contract-id="{{ contract_id }}">
+  {% if ok %}
+  <strong>{{ action | replace('_', ' ') | capitalize }} recorded.</strong>
+  {% if status %}Contract is now <code>{{ status }}</code>.{% endif %}
+  {% if envelope_id %}Envelope <code>{{ envelope_id }}</code> ({{ envelope_status }}) — a draft in DocuSign; send it from there after reading it.{% endif %}
+  {% if workflow_id %}Started <code>{{ workflow_id }}</code>.{% endif %}
+  {% if release_earnest_money_reminder %}<span class="flag">Release earnest money (human step)</span>{% endif %}
+  {% if detail %}<span class="dim">{{ detail }}</span>{% endif %}
+  <a href="/deals" class="dim">Reload</a>
+  {% else %}
+  <strong>Not applied.</strong> {{ detail }}
+  {% endif %}
+</div>

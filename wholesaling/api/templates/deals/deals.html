@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% set active = 'deals' %}
+{% block title %}Deals ({{ contracts | length }}){% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <h1>Deals</h1>
+    <p class="sub">Every button here is a human action and is audited under your name. Contract execution and earnest money are never automated (POL-03i/j). DocuSign envelopes are created as <em>drafts</em>; you send and sign in DocuSign, then record it here.</p>
+  </div>
+</section>
+
+<section class="group" id="awaiting">
+  <h2>Awaiting contract <span class="count">{{ awaiting | length }}</span></h2>
+  {% if not awaiting %}<p class="empty">No accepted offers waiting for a PSA.</p>{% endif %}
+  <ul class="items">
+  {% for a in awaiting %}
+    <li class="item" id="offer-{{ a.offer_id }}">
+      <div class="item-head">
+        <div class="meta">
+          <span class="recipient">{{ a.property_address }}</span>
+          <span class="pill">offer {{ a.offer_price | money }}</span>
+          <span class="pill">fee {{ a.assignment_fee | money }}</span>
+          <span class="age">accepted {{ a.accepted_at | dt }}</span>
+        </div>
+      </div>
+      <div class="actions">
+        <details class="edit">
+          <summary class="btn">Generate PSA envelope</summary>
+          <form hx-post="/deals/offers/{{ a.offer_id }}/psa" hx-target="#offer-{{ a.offer_id }}" hx-swap="outerHTML" method="post" action="/deals/offers/{{ a.offer_id }}/psa">
+            <input name="seller_name" placeholder="seller name (defaults to the lead's owner)">
+            <input name="seller_email" placeholder="seller email (defaults to the lead's email)">
+            <input name="title_company" placeholder="title company (PRE-14)">
+            <input name="earnest_money_amount" placeholder="earnest money $">
+            <button type="submit" class="btn approve">Create PSA draft in DocuSign</button>
+          </form>
+        </details>
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+
+<section class="group" id="contracts">
+  <h2>Contracts <span class="count">{{ contracts | length }}</span></h2>
+  {% if not contracts %}<p class="empty">No contracts yet.</p>{% endif %}
+  <ul class="items">
+  {% for c in contracts %}
+    <li class="item" id="contract-{{ c.id }}" data-contract-id="{{ c.id }}">
+      <div class="item-head">
+        <div class="meta">
+          <span class="recipient">{{ c.address }}</span>
+          <span class="pill lvl">{{ c.status | replace('_', ' ') }}</span>
+          <span class="pill">price {{ c.purchase_price | money }}</span>
+          <span class="pill">fee {{ c.assignment_fee | money }}</span>
+          {% if c.realized_assignment_fee is not none %}<span class="pill">realised {{ c.realized_assignment_fee | money }}</span>{% endif %}
+          <span class="pill">earnest {{ c.earnest_money_status }}{% if c.earnest_money_amount %} {{ c.earnest_money_amount | money }}{% endif %}</span>
+          {% if c.envelope_id %}<span class="dim">envelope <code>{{ c.envelope_id }}</code> {{ c.envelope_status }}</span>{% endif %}
+        </div>
+        <div class="subject">
+          {% if c.signed_at %}Signed {{ c.signed_at | dt }} by {{ c.signed_by }} ·{% endif %}
+          option {{ c.option_period_end | dt }} · inspection {{ c.inspection_deadline | dt }} · closing {{ c.closing_date | dt }}
+          {% if c.next_alert_key %}· next alert <code>{{ c.next_alert_key }}</code> at {{ c.next_alert_at | dt }}{% endif %}
+          {% if c.workflow_state %}· workflow <code>{{ c.workflow_state }}</code>{% endif %}
+          {% if c.deal_dead_reason %}· <span class="flag">dead: {{ c.deal_dead_reason }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="qa">
+        {% if c.buyer_name %}<span class="verdict verdict-approve">buyer: {{ c.buyer_name }}</span>{% endif %}
+        {% if c.deposit_received_at %}<span class="verdict verdict-approve">deposit {{ c.deposit_amount | money }} on {{ c.deposit_received_at | dt }}</span>{% endif %}
+        {% if c.assignment %}<span class="pill">assignment {{ c.assignment.status | replace('_', ' ') }}{% if c.assignment.envelope_id %} · <code>{{ c.assignment.envelope_id }}</code>{% endif %}</span>{% endif %}
+        {% for k in c.alerts_raised %}<span class="flag">alert {{ k }}</span>{% endfor %}
+        {% if c.title_company %}<span class="dim">title: {{ c.title_company }}</span>{% endif %}
+      </div>
+
+      {% if c.candidates %}
+      <details class="body">
+        <summary>{{ c.candidates | length }} buyer response{{ '' if c.candidates | length == 1 else 's' }}</summary>
+        <ul>
+        {% for b in c.candidates %}
+          <li>{{ b.name }} {% if b.email %}<span class="dim">{{ b.email }}</span>{% endif %} — <code>{{ b.response }}</code>{% if b.proof_of_funds %} · proof of funds{% endif %}{% if b.deposit_terms %} · {{ b.deposit_terms }}{% endif %}
+            {% if c.status == 'signed' and not c.buyer_investor_id and b.response == 'interested' %}
+            <form hx-post="/deals/{{ c.id }}/select-buyer" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/select-buyer" style="display:inline">
+              <input type="hidden" name="investor_id" value="{{ b.investor_id }}">
+              <button type="submit" class="btn approve">Select as buyer</button>
+            </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+
+      <div class="actions">
+        {% if c.status in ('requested', 'sent_for_signature') %}
+        <details class="edit">
+          <summary class="btn approve">Mark contract signed</summary>
+          <form hx-post="/deals/{{ c.id }}/signed" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/signed">
+            <input name="signed_by" placeholder="signed by (defaults to you)">
+            <input name="envelope_id" placeholder="DocuSign envelope id" value="{{ c.envelope_id or '' }}">
+            <input name="option_period_end" placeholder="option period end (ISO, e.g. 2026-11-05T17:00:00-06:00)">
+            <input name="inspection_deadline" placeholder="inspection deadline (ISO)">
+            <input name="closing_date" placeholder="closing date (ISO)">
+            <input name="title_company" placeholder="title company" value="{{ c.title_company or '' }}">
+            <button type="submit" class="btn approve">I saw the executed contract — mark signed</button>
+          </form>
+        </details>
+        {% endif %}
+
+        {% if c.status in ('signed',) %}
+        <details class="edit">
+          <summary class="btn">Deadlines</summary>
+          <form hx-post="/deals/{{ c.id }}/deadlines" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/deadlines">
+            <input name="option_period_end" placeholder="option period end (ISO)">
+            <input name="inspection_deadline" placeholder="inspection deadline (ISO)">
+            <input name="closing_date" placeholder="closing date (ISO)">
+            <input name="title_company" placeholder="title company">
+            <button type="submit" class="btn">Save deadlines</button>
+          </form>
+        </details>
+        <details class="edit">
+          <summary class="btn">Record buyer response</summary>
+          <form hx-post="/deals/{{ c.id }}/buyer-response" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/buyer-response">
+            <input name="investor_id" placeholder="investor id (UUID)" required>
+            <select name="response"><option value="interested">interested</option><option value="pass">pass</option></select>
+            <label><input type="checkbox" name="proof_of_funds" value="true"> proof of funds received</label>
+            <input name="deposit_terms" placeholder="deposit terms">
+            <button type="submit" class="btn">Record</button>
+          </form>
+        </details>
+        {% if c.buyer_investor_id and not c.assignment %}
+        <form hx-post="/deals/{{ c.id }}/assignment" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/assignment">
+          <button type="submit" class="btn">Generate assignment envelope</button>
+        </form>
+        {% endif %}
+        {% if c.assignment and c.assignment.status != 'signed' %}
+        <form hx-post="/deals/{{ c.id }}/assignment/signed" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/assignment/signed">
+          <button type="submit" class="btn approve">Mark assignment signed</button>
+        </form>
+        {% endif %}
+        {% if c.buyer_investor_id %}
+        <details class="edit">
+          <summary class="btn">Record deposit</summary>
+          <form hx-post="/deals/{{ c.id }}/deposit" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/deposit">
+            <input name="amount" placeholder="deposit $" required>
+            <button type="submit" class="btn approve">Deposit received</button>
+          </form>
+        </details>
+        <details class="edit">
+          <summary class="btn approve">Mark closed</summary>
+          <form hx-post="/deals/{{ c.id }}/closed" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/closed">
+            <input name="realized_assignment_fee" placeholder="realised assignment fee $" required>
+            <button type="submit" class="btn approve">Closed</button>
+          </form>
+        </details>
+        {% endif %}
+        {% endif %}
+
+        {% if c.status not in ('closed', 'cancelled') %}
+        <details class="edit">
+          <summary class="btn">Earnest money</summary>
+          <form hx-post="/deals/{{ c.id }}/earnest" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/earnest">
+            <select name="status">
+              {% for s in c.earnest_next %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+            </select>
+            <input name="amount" placeholder="amount $">
+            <button type="submit" class="btn" {% if not c.earnest_next %}disabled{% endif %}>Record</button>
+          </form>
+        </details>
+        <details class="edit">
+          <summary class="btn">Checklist</summary>
+          {% for key, label in checklist_items %}
+          <form hx-post="/deals/{{ c.id }}/checklist" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/checklist">
+            <input type="hidden" name="item" value="{{ key }}">
+            <input type="hidden" name="value" value="{{ 'false' if c.checklist[key] else 'true' }}">
+            <button type="submit" class="btn small">{{ '☑' if c.checklist[key] else '☐' }} {{ label }}</button>
+          </form>
+          {% endfor %}
+        </details>
+        <details class="reject">
+          <summary class="btn danger">Mark deal dead</summary>
+          <form hx-post="/deals/{{ c.id }}/dead" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/dead">
+            <input name="reason" placeholder="reason (kept in the audit log)" required>
+            <label><input type="checkbox" name="void_envelope" value="true"> void the DocuSign envelope too</label>
+            <button type="submit" class="btn danger">Deal dead</button>
+          </form>
+        </details>
+        {% elif c.status == 'cancelled' and c.earnest_money_status == 'deposited' %}
+        <form hx-post="/deals/{{ c.id }}/earnest" hx-target="#contract-{{ c.id }}" hx-swap="afterend" method="post" action="/deals/{{ c.id }}/earnest">
+          <input type="hidden" name="status" value="released">
+          <button type="submit" class="btn danger">Release earnest money (human)</button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}
