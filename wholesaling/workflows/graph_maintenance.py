@@ -29,6 +29,7 @@ from typing import Any
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from temporalio.exceptions import ActivityError
+from temporalio.workflow import ParentClosePolicy
 
 with workflow.unsafe.imports_passed_through():
     from wholesaling.activities.conversation import (
@@ -63,6 +64,7 @@ with workflow.unsafe.imports_passed_through():
         record_renewal_outcome,
         renew_subscriptions,
     )
+    from wholesaling.activities.seller import seller_inbound_workflow_id
 
 GRAPH_ACTIVITY_TIMEOUT = timedelta(minutes=2)
 DELTA_ACTIVITY_TIMEOUT = timedelta(minutes=10)
@@ -263,6 +265,19 @@ class InboundPipelineResult:
     edited_by_human: bool = False
 
 
+@dataclass(slots=True)
+class SellerInboundHandoff:
+    """Field-compatible with ``workflows.seller_inbound.SellerInboundInput`` (Temporal matches
+    dataclass fields by name; importing it here would be a circular import)."""
+
+    source: str = "email"
+    graph_id: str | None = None
+    subscription_id: str | None = None
+    change_type: str | None = None
+    message_id: str | None = None
+    submission_id: str | None = None
+
+
 @workflow.defn(name="GraphInboundMessageWorkflow")
 class GraphInboundMessageWorkflow:
     def __init__(self) -> None:
@@ -312,6 +327,23 @@ class GraphInboundMessageWorkflow:
                 retry_policy=GRAPH_RETRY,
             )
             return self._finish(result, "done", skipped_reason="bounce")
+
+        # Seller threads (SEL-08) take the seller pipeline; the child re-reads the already
+        # persisted row (upsert is idempotent) and runs S4 intake instead of A4.
+        if fetched.is_seller_thread:
+            self._state = "routing_to_seller"
+            await workflow.execute_child_workflow(
+                "SellerInboundWorkflow",
+                SellerInboundHandoff(
+                    source="email",
+                    graph_id=input.graph_id,
+                    subscription_id=input.subscription_id,
+                    change_type=input.change_type,
+                ),
+                id=seller_inbound_workflow_id("email", input.graph_id),
+                parent_close_policy=ParentClosePolicy.ABANDON,
+            )
+            return self._finish(result, "done", skipped_reason="routed_to_seller")
 
         self._state = "classifying"
         classified: ClassifyInboundResult = await workflow.execute_activity(

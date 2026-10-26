@@ -120,6 +120,7 @@ class UpsertOutcome:
     is_bounce: bool
     bounced_address: str | None
     suppression_created: bool
+    is_seller_thread: bool = False  # thread belongs to a seller lead -> seller pipeline
 
 
 async def _get_or_create_thread(
@@ -264,6 +265,7 @@ async def upsert_inbound(
         suppression_created=suppression_created,
         source=source,
     )
+    thread_row = await session.get(Thread, existing.thread_id)
     return UpsertOutcome(
         message_id=str(existing.id),
         thread_id=str(existing.thread_id),
@@ -272,6 +274,7 @@ async def upsert_inbound(
         is_bounce=msg.bounce.is_bounce,
         bounced_address=msg.bounce.bounced_address,
         suppression_created=suppression_created,
+        is_seller_thread=bool(thread_row is not None and thread_row.seller_lead_id is not None),
     )
 
 
@@ -346,6 +349,7 @@ class FetchMessageResult:
     suppression_created: bool = False
     is_reply: bool = False
     from_address: str | None = None
+    is_seller_thread: bool = False
 
 
 @activity.defn(name="graph_fetch_message")

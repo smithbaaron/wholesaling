@@ -541,3 +541,35 @@ def test_review_queue_payload_decodes_into_workflow_human_decision() -> None:
     assert decoded == HumanDecision(
         approved=True, edited_body="x", step=None, message_id="m", actor_id="aaron"
     )
+
+
+async def test_seller_thread_is_handed_to_the_seller_pipeline(
+    stub: StubbedTemporal, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SEL-08: an inbound message on a seller-lead thread runs S4, not A4. The Graph workflow
+    hands off to ``SellerInboundWorkflow`` as a child and stops."""
+    children: list[tuple[str, Any, dict[str, Any]]] = []
+
+    async def execute_child_workflow(name: str, arg: Any, **kw: Any) -> None:
+        children.append((name, arg, kw))
+
+    monkeypatch.setattr(gm.workflow, "execute_child_workflow", execute_child_workflow)
+    stub.respond(graph_acts.fetch_message, lambda _a: fetched(is_seller_thread=True))
+    result, wf = await run_wf(stub)
+
+    assert stub.names() == ["fetch_message"], "A4 must not run on a seller thread"
+    assert result.skipped_reason == "routed_to_seller"
+    assert wf.status()["state"] == "done"
+    (name, handoff, kw) = children[0]
+    assert name == "SellerInboundWorkflow"
+    assert handoff.source == "email" and handoff.graph_id == "AAMk1"
+    assert kw["id"] == "seller-inbound:email:AAMk1"
+
+    # The handoff dataclass must stay field-compatible with the seller workflow's input.
+    from dataclasses import fields
+
+    from wholesaling.workflows.seller_inbound import SellerInboundInput
+
+    assert {f.name for f in fields(gm.SellerInboundHandoff)} == {
+        f.name for f in fields(SellerInboundInput)
+    }
