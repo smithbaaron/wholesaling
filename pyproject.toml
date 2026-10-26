@@ -41,6 +41,7 @@ dev = [
 wholesaling-api = "wholesaling.api.main:run"
 wholesaling-worker = "wholesaling.workers.main:run"
 wholesaling-pilot = "wholesaling.pilot.cli:main"
+wholesaling-evals = "wholesaling.evals.cli:entrypoint"
 
 [build-system]
 requires = ["hatchling"]

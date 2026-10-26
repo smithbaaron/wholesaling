@@ -17,6 +17,7 @@ from wholesaling.workflows.graph_maintenance import (
     DeltaPollWorkflowInput,
     SubscriptionRenewalInput,
 )
+from wholesaling.workflows.learning_stats import LearningStatsInput
 from wholesaling.workflows.outreach_kickoff import OutreachKickoffWorkflowInput
 from wholesaling.workflows.reconciliation import DailyReconciliationInput
 from wholesaling.workflows.seller_sequence import SellerListRefreshInput
@@ -142,6 +143,22 @@ SCHEDULES: list[ScheduleSpec] = [
         ),
         requirement="WF-10 / SEL-02",
         tags=frozenset({"seller"}),
+    ),
+    ScheduleSpec(
+        id="learning-stats",
+        workflow="LearningStatsWorkflow",
+        interval=timedelta(days=1),
+        args=(LearningStatsInput(),),
+        overlap="skip",
+        note=(
+            "BO-13 learning loop on outcomes: once a day computes per-template / subject-variant "
+            "reply, qualified-reply and opt-out rates (INV-11, INV-19) and per-market realized "
+            "results over the trailing 90 days (M1-05: buy boxes captured, offers accepted, "
+            "assignments closed) and persists them as one learning.stats audit event. Read-only "
+            "otherwise: no template is retired and no market tier changes (threshold OPN-11)."
+        ),
+        requirement="BO-13 / INV-11 / M1-05",
+        tags=frozenset({"reporting", "learning"}),
     ),
 ]
 

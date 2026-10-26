@@ -44,6 +44,7 @@ from wholesaling.activities.graph import (
     send_draft,
 )
 from wholesaling.activities.hello import heartbeat_probe, hello
+from wholesaling.activities.learning import compute_learning_stats
 from wholesaling.activities.offers import (
     accept_offer,
     compute_offer,
@@ -97,6 +98,7 @@ from wholesaling.workflows.graph_maintenance import (
 )
 from wholesaling.workflows.hello import HelloWorkflow
 from wholesaling.workflows.investor_sequence import InvestorSequenceWorkflow
+from wholesaling.workflows.learning_stats import LearningStatsWorkflow
 from wholesaling.workflows.negotiation import NegotiationWorkflow
 from wholesaling.workflows.offer import OfferWorkflow
 from wholesaling.workflows.outreach_kickoff import OutreachKickoffWorkflow
@@ -128,6 +130,7 @@ WORKFLOWS: list[type] = [
     OfferWorkflow,
     NegotiationWorkflow,
     BuyBoxSearch,
+    LearningStatsWorkflow,
 ]
 ACTIVITIES: list[Callable[..., Any]] = [
     hello,
@@ -190,6 +193,7 @@ ACTIVITIES: list[Callable[..., Any]] = [
     requeue_seller,
     run_d1,
     run_d2,
+    compute_learning_stats,
 ]
 
 
