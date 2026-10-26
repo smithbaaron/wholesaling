@@ -115,8 +115,13 @@ async def _seed(session: AsyncSession, *, closing_in_days: int) -> uuid.UUID:
         PolicyAction.BUYER_DISPOSITION_BLAST, AutonomyLevel.L1, updated_by="test"
     )
     deal = await seed_accepted_offer(session)
+    # Deadline timers run on the workflow clock (the test server starts at wall-clock time), so
+    # the closing date must be relative to *now*, not the fixed NOW used for seeded history.
     psa = await seed_psa(
-        session, deal, signed=True, closing_date=NOW + timedelta(days=closing_in_days)
+        session,
+        deal,
+        signed=True,
+        closing_date=datetime.now(tz=UTC) + timedelta(days=closing_in_days),
     )
     await seed_investor(
         session,
