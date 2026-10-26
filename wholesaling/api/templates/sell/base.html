@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Sell your house{% endblock %} · {{ company }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .sell { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+    .sell h1 { font-size: 1.6rem; margin: 0 0 6px; }
+    .sell .lede { color: var(--muted); margin: 0 0 20px; }
+    .sell fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin: 0 0 16px; background: var(--surface); }
+    .sell legend { font-weight: 600; padding: 0 6px; }
+    .sell label { display: block; font-weight: 600; margin: 10px 0 4px; }
+    .sell label .opt { color: var(--muted); font-weight: 400; }
+    .sell input[type=text], .sell input[type=email], .sell input[type=tel], .sell input[type=number],
+    .sell select, .sell textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+    .sell textarea { min-height: 84px; }
+    .sell .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 520px) { .sell .row { grid-template-columns: 1fr; } }
+    .sell .consent { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; }
+    .sell .consent input { margin-top: 4px; }
+    .sell button { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer; }
+    .sell .errors { background: var(--danger-bg); color: var(--danger); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 16px; }
+    .sell .errors ul { margin: 6px 0 0; padding-left: 18px; }
+    .sell .disclosure { font-size: 0.9rem; color: var(--muted); border-top: 1px solid var(--line); margin-top: 20px; padding-top: 12px; }
+    .sell .thanks { background: var(--ok-bg); color: var(--ok); border-radius: var(--radius); padding: 14px 16px; }
+  </style>
+</head>
+<body>
+  <main class="sell">
+    {% block content %}{% endblock %}
+    <p class="disclosure">{{ disclosure }}</p>
+    <p class="disclosure">{{ sender_name }}, {{ company }}{% if postal_address %} · {{ postal_address }}{% endif %}</p>
+  </main>
+</body>
+</html>

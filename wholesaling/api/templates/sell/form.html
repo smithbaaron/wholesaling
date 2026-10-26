@@ -1,0 +1,68 @@
+{% extends "sell/base.html" %}
+{% block title %}Sell your house as-is{% endblock %}
+{% block content %}
+<h1>Get a written cash offer for your house</h1>
+<p class="lede">Tell us about the property and how to reach you. We buy as-is, with no repairs, showings or agent commissions. No obligation.</p>
+{% if errors %}
+<div class="errors" role="alert">
+  <strong>Please fix the following:</strong>
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+<form method="post" action="/sell" enctype="multipart/form-data" novalidate>
+  <input type="hidden" name="submission_id" value="{{ submission_id }}">
+  {% if lead_token %}<input type="hidden" name="lead" value="{{ lead_token }}">{% endif %}
+  <fieldset>
+    <legend>The property</legend>
+    <label for="address_line1">Street address</label>
+    <input id="address_line1" name="address_line1" type="text" required maxlength="255" value="{{ values.address_line1 }}" autocomplete="street-address">
+    <div class="row">
+      <div><label for="city">City</label><input id="city" name="city" type="text" maxlength="120" value="{{ values.city }}" autocomplete="address-level2"></div>
+      <div><label for="state">State</label><input id="state" name="state" type="text" maxlength="2" value="{{ values.state }}" placeholder="TX" autocomplete="address-level1"></div>
+    </div>
+    <label for="postal_code">ZIP</label>
+    <input id="postal_code" name="postal_code" type="text" maxlength="16" value="{{ values.postal_code }}" autocomplete="postal-code">
+  </fieldset>
+  <fieldset>
+    <legend>About you</legend>
+    <label for="name">Your name</label>
+    <input id="name" name="name" type="text" required maxlength="255" value="{{ values.name }}" autocomplete="name">
+    <div class="row">
+      <div><label for="email">Email</label><input id="email" name="email" type="email" required maxlength="255" value="{{ values.email }}" autocomplete="email"></div>
+      <div><label for="phone">Phone <span class="opt">(optional)</span></label><input id="phone" name="phone" type="tel" maxlength="40" value="{{ values.phone }}" autocomplete="tel"></div>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>The situation</legend>
+    <label for="motivation">Why are you thinking about selling?</label>
+    <textarea id="motivation" name="motivation" maxlength="2000">{{ values.motivation }}</textarea>
+    <label for="condition_class">Overall condition</label>
+    <select id="condition_class" name="condition_class">
+      <option value="">Choose one</option>
+      {% for c in condition_classes %}<option value="{{ c.value }}" {% if values.condition_class == c.value %}selected{% endif %}>{{ c.label }}</option>{% endfor %}
+    </select>
+    <label for="disclosed_issues">Known problems <span class="opt">(roof, foundation, HVAC, plumbing... one per line, optional)</span></label>
+    <textarea id="disclosed_issues" name="disclosed_issues" maxlength="2000">{{ values.disclosed_issues }}</textarea>
+    <label for="timeline">How soon would you want to close?</label>
+    <select id="timeline" name="timeline">
+      <option value="">Choose one</option>
+      {% for t in timelines %}<option value="{{ t.value }}" {% if values.timeline == t.value %}selected{% endif %}>{{ t.label }}</option>{% endfor %}
+    </select>
+    <label for="asking_price">Asking price <span class="opt">(optional)</span></label>
+    <input id="asking_price" name="asking_price" type="text" inputmode="numeric" maxlength="20" value="{{ values.asking_price }}" placeholder="e.g. 185000">
+  </fieldset>
+  <fieldset>
+    <legend>Photos <span class="opt">(optional, up to {{ max_photos }} images, {{ max_photo_mb }} MB each)</span></legend>
+    <p class="lede">A few photos of the inside and outside let us make a firmer offer. You can also send them later.</p>
+    <input id="photos" name="photos" type="file" accept="image/*" multiple>
+  </fieldset>
+  <fieldset>
+    <legend>Consent</legend>
+    <label class="consent" for="consent_email">
+      <input id="consent_email" name="consent_email" type="checkbox" value="yes" {% if values.consent_email %}checked{% endif %} required>
+      <span>I agree that {{ company }} may contact me by email about this property. I can opt out at any time by replying "unsubscribe". We will not call or text you.</span>
+    </label>
+  </fieldset>
+  <button type="submit">Request my offer</button>
+</form>
+{% endblock %}

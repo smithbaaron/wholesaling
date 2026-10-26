@@ -1,0 +1,122 @@
+{
+ "Dolores Ramirez": [
+  {
+   "channel": "email",
+   "value": "dolores.ramirez@example.test",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: owner name + mailing address",
+   "confidence": 0.86,
+   "use_limitations": "B2C outreach; email only until consent recorded",
+   "provenance_url": null
+  },
+  {
+   "channel": "phone",
+   "value": "(713) 555-0101",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: mobile on file",
+   "confidence": 0.7,
+   "use_limitations": "capture only: no calls or SMS in this build",
+   "provenance_url": null
+  },
+  {
+   "channel": "address",
+   "value": "PO Box 4411, Katy, TX 77491",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: mailing address",
+   "confidence": 0.9,
+   "use_limitations": null,
+   "provenance_url": null
+  }
+ ],
+ "Estate of Walter Boyd": [
+  {
+   "channel": "phone",
+   "value": "713-555-0199",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: executor landline",
+   "confidence": 0.55,
+   "use_limitations": "capture only: no calls or SMS in this build",
+   "provenance_url": null
+  }
+ ],
+ "Thomas Nguyen": [
+  {
+   "channel": "email",
+   "value": "T.Nguyen@Example.test",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: owner name",
+   "confidence": 0.62,
+   "use_limitations": null,
+   "provenance_url": null
+  },
+  {
+   "channel": "email",
+   "value": "t.nguyen@example.test",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: mailing address",
+   "confidence": 0.78,
+   "use_limitations": null,
+   "provenance_url": null
+  },
+  {
+   "channel": "email",
+   "value": "n/a",
+   "source": "mock_skip_trace",
+   "provenance": "vendor placeholder",
+   "confidence": 0.1,
+   "use_limitations": null,
+   "provenance_url": null
+  },
+  {
+   "channel": "phone",
+   "value": "281-555-0142",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: mobile",
+   "confidence": 0.66,
+   "use_limitations": "capture only: no calls or SMS in this build",
+   "provenance_url": null
+  }
+ ],
+ "Gerald Pike": [
+  {
+   "channel": "email",
+   "value": "gpike@example.test",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: owner name + property",
+   "confidence": 0.81,
+   "use_limitations": null,
+   "provenance_url": null
+  },
+  {
+   "channel": "phone",
+   "value": "(832) 555-0177",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: mobile",
+   "confidence": 0.74,
+   "use_limitations": "capture only: no calls or SMS in this build",
+   "provenance_url": null
+  }
+ ],
+ "Linda & Mark Okafor": [
+  {
+   "channel": "email",
+   "value": "okafor.family@example.test",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: owner name",
+   "confidence": 0.83,
+   "use_limitations": null,
+   "provenance_url": null
+  }
+ ],
+ "Patricia Lowell": [
+  {
+   "channel": "email",
+   "value": "plowell@example.test",
+   "source": "mock_skip_trace",
+   "provenance": "vendor match: owner name",
+   "confidence": 0.8,
+   "use_limitations": null,
+   "provenance_url": null
+  }
+ ]
+}

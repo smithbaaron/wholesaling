@@ -1,0 +1,963 @@
+{
+  "_meta": {
+    "version": 1,
+    "description": "S4 seller intake golden set (SEL-06, SEL-07). `model` blocks script MockModelProvider in tests/agents/test_s4.py; the BO-13 eval harness drops them and compares live output against `expected`.",
+    "fields_schema": "expected.fields values: strings, enum values, lists; asking_price as a decimal string"
+  },
+  "cases": [
+    {
+      "id": "full_info",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "Hi Aaron, yes I'd consider selling. I inherited it from my mother and live in Katy now, I don't want to be a landlord. The house needs a new roof and the AC is shot but otherwise it's livable. I'd like to close within 30 days if possible, and I'm hoping for around $185,000. It's just me on the title, nobody lives there, no mortgage, and no HOA. I'll send photos tonight.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.95,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": "inherited it from my mother, lives in Katy, does not want to be a landlord",
+          "condition_class": "Medium",
+          "disclosed_issues": [
+            "roof",
+            "AC"
+          ],
+          "timeline": "within_30_days",
+          "timeline_text": "close within 30 days if possible",
+          "asking_price": 185000,
+          "co_owners": "just me on the title",
+          "occupancy": "vacant",
+          "liens": "no mortgage",
+          "hoa": "no HOA",
+          "seller_unsure": [],
+          "photos_mentioned": true,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {
+          "motivation": "inherited it from my mother, lives in Katy, does not want to be a landlord",
+          "condition_class": "Medium",
+          "disclosed_issues": [
+            "roof",
+            "AC"
+          ],
+          "timeline": "within_30_days",
+          "asking_price": "185000",
+          "co_owners": "just me on the title",
+          "occupancy": "vacant",
+          "liens": "no mortgage",
+          "hoa": "no HOA",
+          "photos_mentioned": true
+        },
+        "missing_required": [],
+        "seller_unsure": []
+      }
+    },
+    {
+      "id": "partial_motivation_only",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "Maybe. The taxes are killing me and I can't keep up with it from out of state.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.88,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": "behind on taxes, cannot keep up from out of state",
+          "condition_class": null,
+          "disclosed_issues": [],
+          "timeline": null,
+          "timeline_text": null,
+          "asking_price": null,
+          "co_owners": null,
+          "occupancy": null,
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {
+          "motivation": "behind on taxes, cannot keep up from out of state"
+        },
+        "missing_required": [
+          "condition",
+          "timeline"
+        ],
+        "seller_unsure": []
+      }
+    },
+    {
+      "id": "whats_your_offer",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "What's your offer? Just give me a number.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.9,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": true
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": null,
+          "condition_class": null,
+          "disclosed_issues": [],
+          "timeline": null,
+          "timeline_text": null,
+          "asking_price": null,
+          "co_owners": null,
+          "occupancy": null,
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": true,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {},
+        "missing_required": [
+          "motivation",
+          "condition",
+          "timeline"
+        ],
+        "seller_unsure": []
+      }
+    },
+    {
+      "id": "hostile",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "Stop emailing me. How did you even get this address?? Leave me alone.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "opt_out",
+          "confidence": 0.97,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": null
+      },
+      "expected": {
+        "classification": "opt_out",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": false
+      }
+    },
+    {
+      "id": "asking_price_only",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "I would take 185k for it, not a penny less.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.86,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": null,
+          "condition_class": null,
+          "disclosed_issues": [],
+          "timeline": null,
+          "timeline_text": null,
+          "asking_price": 185000,
+          "co_owners": null,
+          "occupancy": null,
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {
+          "asking_price": "185000"
+        },
+        "missing_required": [
+          "motivation",
+          "condition",
+          "timeline"
+        ],
+        "seller_unsure": []
+      }
+    },
+    {
+      "id": "photos_attached_mention",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "Photos attached. Kitchen and both baths were redone in 2022, it's in great shape, just want to move closer to the grandkids. No rush, next 2-3 months is fine.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.93,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": "wants to move closer to grandkids",
+          "condition_class": "Light",
+          "disclosed_issues": [],
+          "timeline": "within_90_days",
+          "timeline_text": "next 2-3 months is fine",
+          "asking_price": null,
+          "co_owners": null,
+          "occupancy": null,
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [],
+          "photos_mentioned": true,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {
+          "motivation": "wants to move closer to grandkids",
+          "condition_class": "Light",
+          "timeline": "within_90_days",
+          "photos_mentioned": true
+        },
+        "missing_required": [],
+        "seller_unsure": []
+      }
+    },
+    {
+      "id": "co_owner_mention",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "My sister and I own it together, we would both have to agree. It needs work, the foundation has some cracks.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.9,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": null,
+          "condition_class": "Heavy",
+          "disclosed_issues": [
+            "foundation cracks"
+          ],
+          "timeline": null,
+          "timeline_text": null,
+          "asking_price": null,
+          "co_owners": "my sister and I own it together",
+          "occupancy": null,
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {
+          "condition_class": "Heavy",
+          "disclosed_issues": [
+            "foundation cracks"
+          ],
+          "co_owners": "my sister and I own it together"
+        },
+        "missing_required": [
+          "motivation",
+          "timeline"
+        ],
+        "seller_unsure": []
+      }
+    },
+    {
+      "id": "probate",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "boyd.estate@example.test",
+      "body": "I'm settling my father's estate, I'm the executor. The house has been sitting empty for two years and honestly needs to be gutted. I'd like this done before the end of the year.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.92,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": "settling father's estate as executor",
+          "condition_class": "Gut",
+          "disclosed_issues": [],
+          "timeline": "within_90_days",
+          "timeline_text": "before the end of the year",
+          "asking_price": null,
+          "co_owners": "executor of the estate",
+          "occupancy": "vacant two years",
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {
+          "motivation": "settling father's estate as executor",
+          "condition_class": "Gut",
+          "timeline": "within_90_days",
+          "co_owners": "executor of the estate",
+          "occupancy": "vacant two years"
+        },
+        "missing_required": [],
+        "seller_unsure": []
+      }
+    },
+    {
+      "id": "tenant_occupied",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "There's a tenant in there month to month, she's behind two months on rent. I'm done being a landlord.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.91,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": "done being a landlord, tenant behind on rent",
+          "condition_class": null,
+          "disclosed_issues": [
+            "tenant behind on rent"
+          ],
+          "timeline": null,
+          "timeline_text": null,
+          "asking_price": null,
+          "co_owners": null,
+          "occupancy": "tenant, month to month, behind two months",
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {
+          "motivation": "done being a landlord, tenant behind on rent",
+          "disclosed_issues": [
+            "tenant behind on rent"
+          ],
+          "occupancy": "tenant, month to month, behind two months"
+        },
+        "missing_required": [
+          "condition",
+          "timeline"
+        ],
+        "seller_unsure": []
+      }
+    },
+    {
+      "id": "unknown_liens",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "Honestly I don't know if there are any liens on it, my late husband handled all that. Condition is fair, needs paint and carpet.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.89,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": null,
+          "condition_class": "Light",
+          "disclosed_issues": [
+            "paint",
+            "carpet"
+          ],
+          "timeline": null,
+          "timeline_text": null,
+          "asking_price": null,
+          "co_owners": null,
+          "occupancy": null,
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [
+            "liens"
+          ],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {
+          "condition_class": "Light",
+          "disclosed_issues": [
+            "paint",
+            "carpet"
+          ]
+        },
+        "missing_required": [
+          "motivation",
+          "timeline"
+        ],
+        "seller_unsure": [
+          "liens"
+        ]
+      }
+    },
+    {
+      "id": "opt_out",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "Please remove me from your list. Unsubscribe.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "opt_out",
+          "confidence": 0.99,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": null
+      },
+      "expected": {
+        "classification": "opt_out",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": false
+      }
+    },
+    {
+      "id": "auto_reply",
+      "subject": "Automatic reply: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "I am currently out of the office until November 3 with limited access to email.",
+      "headers": {
+        "auto-submitted": "auto-replied"
+      },
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": null,
+        "extract": null
+      },
+      "expected": {
+        "classification": "unrelated",
+        "is_auto_reply": true,
+        "asks_offer": false,
+        "model_called": false,
+        "quoted_text_stripped": false,
+        "extract_called": false
+      }
+    },
+    {
+      "id": "address_typo",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "Yes, 1402 Pecan Grove Dr is mine, I'd sell it. Been thinking about downsizing.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": false
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.9,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": "1402 Pecan Grove Dr",
+          "motivation": "downsizing",
+          "condition_class": null,
+          "disclosed_issues": [],
+          "timeline": null,
+          "timeline_text": null,
+          "asking_price": null,
+          "co_owners": null,
+          "occupancy": null,
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {
+          "property_address": "1402 Pecan Grove Dr",
+          "motivation": "downsizing"
+        },
+        "missing_required": [
+          "address",
+          "condition",
+          "timeline"
+        ],
+        "seller_unsure": []
+      }
+    },
+    {
+      "id": "sms_style_text",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "yes interested call me 7135550101",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.8,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": null,
+          "condition_class": null,
+          "disclosed_issues": [],
+          "timeline": null,
+          "timeline_text": null,
+          "asking_price": null,
+          "co_owners": null,
+          "occupancy": null,
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {},
+        "missing_required": [
+          "motivation",
+          "condition",
+          "timeline"
+        ],
+        "seller_unsure": []
+      }
+    },
+    {
+      "id": "not_interested",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "No thanks, we're not selling.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "not_interested",
+          "confidence": 0.95,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": null
+      },
+      "expected": {
+        "classification": "not_interested",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": false
+      }
+    },
+    {
+      "id": "unrelated_spam",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "promo@cruises.example",
+      "body": "Congratulations! You have been selected for a free cruise. Click here to claim.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "unrelated",
+          "confidence": 0.97,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": null
+      },
+      "expected": {
+        "classification": "unrelated",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": false
+      }
+    },
+    {
+      "id": "quoted_reply_gmail",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "Sure, it's in good shape, just cosmetic stuff.\n\nOn Mon, Oct 20, 2026 at 9:00 AM Aaron <deals@example.test> wrote:\n> the foundation and roof are brand new and we have inventory",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.9,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": null,
+          "condition_class": "Light",
+          "disclosed_issues": [
+            "cosmetic"
+          ],
+          "timeline": null,
+          "timeline_text": null,
+          "asking_price": null,
+          "co_owners": null,
+          "occupancy": null,
+          "liens": null,
+          "hoa": null,
+          "seller_unsure": [],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": true,
+        "extract_called": true,
+        "fields": {
+          "condition_class": "Light",
+          "disclosed_issues": [
+            "cosmetic"
+          ]
+        },
+        "missing_required": [
+          "motivation",
+          "timeline"
+        ],
+        "seller_unsure": [],
+        "stripped_text_contains": "cosmetic stuff",
+        "stripped_text_excludes": "inventory"
+      }
+    },
+    {
+      "id": "all_optional_known",
+      "subject": "RE: Question about 1420 Pecan Grove Dr",
+      "from": "dolores.ramirez@example.test",
+      "body": "Relocating for work, need to be out by January. House is solid, nothing major. Just me on title, I live there now, about $40k left on the mortgage, no HOA.",
+      "headers": {},
+      "history": [
+        {
+          "direction": "out",
+          "body": "Hi Dolores,\n\nMy name is Aaron with NorthStack. We buy houses in the Houston area directly from owners, as-is. I am reaching out about 1420 Pecan Grove Dr."
+        }
+      ],
+      "known": {
+        "parcel_verified": true
+      },
+      "model": {
+        "classify": {
+          "classification": "reply",
+          "confidence": 0.94,
+          "rationale": "scripted",
+          "is_auto_reply": false,
+          "asks_offer": false
+        },
+        "extract": {
+          "property_address": null,
+          "motivation": "relocating for work",
+          "condition_class": "Light",
+          "disclosed_issues": [],
+          "timeline": "within_90_days",
+          "timeline_text": "out by January",
+          "asking_price": null,
+          "co_owners": "just me on title",
+          "occupancy": "owner-occupied",
+          "liens": "about $40k left on the mortgage",
+          "hoa": "no HOA",
+          "seller_unsure": [],
+          "photos_mentioned": false,
+          "rationale": "scripted"
+        }
+      },
+      "expected": {
+        "classification": "reply",
+        "is_auto_reply": false,
+        "asks_offer": false,
+        "model_called": true,
+        "quoted_text_stripped": false,
+        "extract_called": true,
+        "fields": {
+          "motivation": "relocating for work",
+          "condition_class": "Light",
+          "timeline": "within_90_days",
+          "co_owners": "just me on title",
+          "occupancy": "owner-occupied",
+          "liens": "about $40k left on the mortgage",
+          "hoa": "no HOA"
+        },
+        "missing_required": [],
+        "seller_unsure": []
+      }
+    }
+  ]
+}

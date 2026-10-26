@@ -1,0 +1,7 @@
+{
+ "phones": [
+  "(713) 555-0199",
+  "281-555-0142"
+ ],
+ "note": "Mock DNC registry (CMP-02). SMS never sends in this build; the scrub is recorded on the lead (SEL-03)."
+}

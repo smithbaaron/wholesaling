@@ -1,0 +1,10 @@
+{% extends "sell/base.html" %}
+{% block title %}Thank you{% endblock %}
+{% block content %}
+<h1>Thank you{% if first_name %}, {{ first_name }}{% endif %}.</h1>
+<div class="thanks">
+  <p>We received your details about <strong>{{ property_address }}</strong>{% if photo_count %} and {{ photo_count }} photo{% if photo_count != 1 %}s{% endif %}{% endif %}.</p>
+  <p>{% if missing %}We will email you shortly with one or two quick questions so we can put a written offer together.{% else %}We have what we need to prepare a written, no-obligation cash offer and will email it to you.{% endif %}</p>
+  <p>Reference: <code>{{ submission_id }}</code>{% if duplicate %} (this submission was already received){% endif %}</p>
+</div>
+{% endblock %}
