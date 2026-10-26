@@ -299,3 +299,32 @@ async def test_qa_review_persisted_and_linked_to_message(
 async def test_qa_review_requires_a_target(session: AsyncSession) -> None:
     with pytest.raises(ValueError, match="message_id or an offer_id"):
         await QaReviewRepository(session).record(verdict=QaVerdict.APPROVE, confidence=1.0)
+
+
+def test_scheduled_sequence_skips_cadence_and_repeated_request_prechecks() -> None:
+    """A3 follow-ups repeat the ask by design and the workflow owns the cadence; only the
+    content checks apply to them (pilot follow-up: CI e2e exposed wall-clock cadence)."""
+    from datetime import UTC, datetime, timedelta
+
+    from wholesaling.agents.a5 import (
+        FLAG_CADENCE,
+        FLAG_REPEATED_REQUEST,
+        QaDraft,
+        QaInput,
+        run_prechecks,
+    )
+
+    now = datetime(2026, 10, 25, 12, tzinfo=UTC)
+    base = {
+        "draft": QaDraft(
+            to=["inv@example.com"], subject="Deals", body="Any interest?", asks_for=["buy box"]
+        ),
+        "thread": (),
+        "last_outbound_asks_for": ["buy box"],
+        "last_outbound_at": now - timedelta(minutes=5),
+        "now": now,
+    }
+    flags = run_prechecks(QaInput(**base))
+    assert FLAG_CADENCE in flags and FLAG_REPEATED_REQUEST in flags
+    flags = run_prechecks(QaInput(**base, scheduled_sequence=True))
+    assert FLAG_CADENCE not in flags and FLAG_REPEATED_REQUEST not in flags

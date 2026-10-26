@@ -185,9 +185,10 @@ async def test_four_messages_one_conversation_with_scripted_approvals_at_l1(
     session: AsyncSession,
     seq: Sequence,
 ) -> None:
-    """INV-23: at L1 with no QA review every step queues; a human approves each one in the
-    review queue (the ``human_decision`` signal) and all four land in one conversation."""
-    await _levels(session, AutonomyLevel.L1)
+    """INV-23: at L0 every step queues (the policy table, whatever QA says); a human approves
+    each one in the review queue (the ``human_decision`` signal) and all four land in one
+    conversation."""
+    await _levels(session, AutonomyLevel.L0)
     handle = await _start(env, seq)
     for step in range(4):
         await _wait_for(handle, _awaiting(step))

@@ -501,6 +501,7 @@ async def qa_review_draft(
             else (),
             last_outbound_at=_aware(last_out.sent_at) if last_out else None,
             now=now,
+            scheduled_sequence=True,
         )
     )
     review = await QaReviewRepository(session).record(

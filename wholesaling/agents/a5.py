@@ -88,6 +88,9 @@ class QaInput:
     last_outbound_asks_for: Sequence[str] = ()
     last_outbound_at: datetime | None = None
     now: datetime | None = None
+    # True for A3 sequence steps: the workflow's durable timers own the cadence and follow-ups
+    # repeat the ask by design, so the repeated-request and cadence pre-checks do not apply.
+    scheduled_sequence: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,6 +169,8 @@ def run_prechecks(inp: QaInput) -> list[str]:
         not inp.draft.to or not any(_same_address(t, inp.thread_participant) for t in inp.draft.to)
     ):
         flags.append(FLAG_WRONG_RECIPIENT)
+    if inp.scheduled_sequence:
+        return flags
     asks = {a.strip().lower() for a in inp.draft.asks_for if a.strip()}
     last = {a.strip().lower() for a in inp.last_outbound_asks_for if a.strip()}
     if asks and asks == last:
