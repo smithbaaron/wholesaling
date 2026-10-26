@@ -6,10 +6,13 @@ the ``human_decision`` signal waiting for the operator. This repository reads th
 QA review, thread, investor and market) and resolves which workflow to signal:
 
 - sequence steps: ``sequences.temporal_workflow_id`` via ``messages.sequence_id``;
-- inbound-reply drafts (no sequence): ``messages.meta["temporal_workflow_id"]`` when the A4
-  builder stored it there, otherwise the ``audit_events`` row with ``entity_type = 'message'``,
-  ``entity_id = <message id>`` and ``event_type = 'inbound.workflow_started'`` whose payload
-  carries ``workflow_id`` (or ``temporal_workflow_id``).
+- inbound-reply drafts (no sequence): ``messages.meta["temporal_workflow_id"]`` when
+  ``draft_and_qa_reply`` stored it there (it always does when it knows its workflow: from the
+  Temporal activity context or from the ``workflow_id`` the workflow passes in), otherwise the
+  ``audit_events`` row with ``entity_type = 'message'``, ``event_type =
+  'inbound.workflow_started'`` and ``entity_id`` equal to the draft's id or to the inbound
+  message it answers (``meta["reply_to_message_id"]``; ``graph_fetch_message`` writes that event
+  when the workflow starts), whose payload carries ``workflow_id`` (or ``temporal_workflow_id``).
 
 Flipping the row (``send`` / ``blocked``) is the API route's job and happens only *after* the
 signal succeeded.
@@ -17,6 +20,7 @@ signal succeeded.
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -226,14 +230,27 @@ class ReviewRepository:
             sequence = await self._s.get(Sequence, message.sequence_id)
             if sequence is not None and sequence.temporal_workflow_id:
                 return sequence.temporal_workflow_id
-        meta_id = (message.meta or {}).get(META_WORKFLOW_ID_KEY)
+        meta = message.meta or {}
+        meta_id = meta.get(META_WORKFLOW_ID_KEY)
         if isinstance(meta_id, str) and meta_id:
             return meta_id
+        entity_ids = [message.id]
+        inbound_id = meta.get("reply_to_message_id")
+        if isinstance(inbound_id, str) and inbound_id:
+            with contextlib.suppress(ValueError):
+                entity_ids.append(uuid.UUID(inbound_id))
+        for entity_id in entity_ids:
+            found = await self._workflow_started_event(entity_id)
+            if found is not None:
+                return found
+        return None
+
+    async def _workflow_started_event(self, entity_id: uuid.UUID) -> str | None:
         stmt = (
             select(AuditEvent)
             .where(
                 AuditEvent.entity_type == "message",
-                AuditEvent.entity_id == message.id,
+                AuditEvent.entity_id == entity_id,
                 AuditEvent.event_type == INBOUND_WORKFLOW_STARTED,
             )
             .order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc())

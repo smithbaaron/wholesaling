@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from wholesaling.activities.conversation import OptOutSignal, ReplySignal
+from wholesaling.activities.conversation import BounceSignal, OptOutSignal, ReplySignal
 from wholesaling.db.repositories.review import HumanDecision as ReviewDecision
 from wholesaling.pilot.sim import (
     SimTemporalGateway,
@@ -166,8 +166,8 @@ async def test_signal_converts_dataclass_payload_by_field_name_like_temporal() -
 async def test_signal_with_a_payload_the_handler_cannot_take_is_recorded_as_a_contract_error() -> (
     None
 ):
-    """GAP-01: the inbound pipeline sends ReplySignal/OptOutSignal payloads to handlers that
-    take none. Temporal would fail the workflow task; the simulator records and re-delivers."""
+    """Regression guard for GAP-01: a handler that takes no payload gets the signal re-delivered
+    bare and the mismatch is recorded (Temporal would fail the workflow task)."""
     sim = WorkflowSimulator(T0)
     target = _Target([])
     sim.instances["t"] = target
@@ -191,19 +191,44 @@ async def test_signal_to_unknown_or_finished_workflow_raises() -> None:
         await gw.signal("done", "reply")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "GAP-01: InvestorSequenceWorkflow.reply/opt_out/bounce take no payload but "
-        "activities.conversation signals ReplySignal/OptOutSignal/BounceSignal; under Temporal "
-        "handler(*args) raises TypeError and fails the workflow task. Remove this xfail when "
-        "the contract is fixed."
-    ),
-)
 def test_sequence_signal_handlers_accept_the_inbound_pipelines_payloads() -> None:
+    """GAP-01 fixed: the handlers take the payloads ``activities.conversation`` sends (the same
+    dataclasses, from ``wholesaling.signals``) and still accept no payload at all."""
     wf = InvestorSequenceWorkflow()
-    wf.reply(ReplySignal(message_id="m", classification="interested"))  # type: ignore[call-arg]
-    wf.opt_out(OptOutSignal(message_id="m"))  # type: ignore[call-arg]
+    wf.reply(ReplySignal(message_id="m", classification="interested"))
+    assert wf.status()["cancel_reason"] == "reply"
+    assert wf.status()["last_signal"] == {
+        "signal": "reply",
+        "message_id": "m",
+        "classification": "interested",
+    }
+    wf.opt_out(OptOutSignal(message_id="m2"))  # at-least-once: a later signal is a no-op
+    assert wf.status()["cancel_reason"] == "reply"
+    bare = InvestorSequenceWorkflow()
+    bare.bounce()
+    assert bare.status()["cancel_reason"] == "bounce" and bare.status()["last_signal"] == {
+        "signal": "bounce"
+    }
+    wf3 = InvestorSequenceWorkflow()
+    wf3.bounce(BounceSignal(message_id="m3", bounced_address="x@y.z"))
+    assert wf3.status()["last_signal"]["bounced_address"] == "x@y.z"
+
+
+async def test_gateway_delivers_the_sequence_payloads_without_contract_errors() -> None:
+    """End to end through the simulated gateway: dataclass payload -> ``X | None`` handler."""
+    sim = WorkflowSimulator(T0)
+    wf = InvestorSequenceWorkflow()
+    sim.instances["seq"] = wf
+    gw = SimTemporalGateway(sim)
+    await gw.signal("seq", "reply", ReplySignal(message_id="m", classification="question"))
+    assert sim.signal_contract_errors == []
+    assert wf.status()["last_signal"]["classification"] == "question"
+    # A payload shaped like the sender's dataclass but of another class maps by field name.
+    other = InvestorSequenceWorkflow()
+    sim.instances["seq2"] = other
+    await gw.signal("seq2", "bounce", {"message_id": "m", "bounced_address": "a@b.c"})
+    assert other.status()["last_signal"]["bounced_address"] == "a@b.c"
+    assert sim.signal_contract_errors == []
 
 
 async def test_patched_workflow_modules_swaps_and_restores() -> None:

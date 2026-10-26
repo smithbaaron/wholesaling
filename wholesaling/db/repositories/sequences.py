@@ -43,11 +43,14 @@ class SequenceRepository:
         total_steps: int = 4,
         thread_id: uuid.UUID | None = None,
         next_send_at: datetime | None = None,
+        sequence_id: uuid.UUID | None = None,
     ) -> tuple[Sequence, bool]:
         """Create a sequence, or return the existing one for ``temporal_workflow_id``.
 
         Returns ``(sequence, created)``. The target must match the kind (investor sequences
         need ``investor_id``; seller sequences ``seller_lead_id``), mirroring the table's CHECK.
+        ``sequence_id`` lets the caller fix the row id up front so ``temporal_workflow_id`` can
+        be derived from it before the insert (``investor-sequence:{sequence_id}``, WF-02).
         """
         if kind is SequenceKind.INVESTOR and (investor_id is None or seller_lead_id is not None):
             msg = "an investor sequence needs investor_id and no seller_lead_id"
@@ -59,6 +62,7 @@ class SequenceRepository:
         if existing is not None:
             return existing, False
         row = Sequence(
+            **({"id": sequence_id} if sequence_id is not None else {}),
             kind=kind,
             investor_id=investor_id,
             seller_lead_id=seller_lead_id,

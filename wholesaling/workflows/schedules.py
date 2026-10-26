@@ -17,6 +17,7 @@ from wholesaling.workflows.graph_maintenance import (
     DeltaPollWorkflowInput,
     SubscriptionRenewalInput,
 )
+from wholesaling.workflows.outreach_kickoff import OutreachKickoffWorkflowInput
 from wholesaling.workflows.reconciliation import DailyReconciliationInput
 from wholesaling.workflows.sheets_sync import SheetsSyncInput
 
@@ -93,6 +94,23 @@ SCHEDULES: list[ScheduleSpec] = [
         ),
         requirement="WF-13",
         tags=frozenset({"sheets"}),
+    ),
+    ScheduleSpec(
+        id="outreach-kickoff",
+        workflow="OutreachKickoffWorkflow",
+        interval=timedelta(days=1),
+        args=(OutreachKickoffWorkflowInput(),),
+        overlap="skip",
+        note=(
+            "WF-02 daily catch-up: starts InvestorSequenceWorkflows for qualified investors with "
+            "a primary email in every Active / Watch market, priority tier first (INV-04), "
+            "skipping suppressed contacts and investors already on a sequence, within "
+            "OUTREACH_KICKOFF_DAILY_CAP. Runs after the day's discovery (A1/A2) so the "
+            "contacts it finds are picked up the same day; run_a2 also starts sequences "
+            "inline, so this is the safety net."
+        ),
+        requirement="WF-02 / INV-04",
+        tags=frozenset({"outreach"}),
     ),
     ScheduleSpec(
         id="daily-reconciliation",

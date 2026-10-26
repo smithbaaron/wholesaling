@@ -17,10 +17,11 @@ sleeps and 14-day human waits cost nothing. That is what ``WorkflowSimulator`` p
   so a run with the same inputs always takes the same path;
 - ``SimTemporalGateway``, a ``TemporalGateway`` whose ``start_workflow`` instantiates the real
   workflow class and whose ``signal`` invokes the real signal handler the way the Temporal SDK
-  would (``handler(*args)`` after converting dataclass payloads by field name). A payload the
-  handler cannot accept is recorded as a ``SignalContractError`` - in a real worker that
-  ``TypeError`` fails the workflow task - and then re-delivered without the payload so the
-  pilot can keep measuring everything else.
+  would (``handler(*args)`` after converting dataclass payloads by field name, through an
+  ``X | None`` annotation). A payload the handler cannot accept is recorded as a
+  ``SignalContractError`` - in a real worker that ``TypeError`` fails the workflow task - and
+  then re-delivered without the payload so the pilot can keep measuring everything else
+  (zero such errors since GAP-01 was fixed; the check stays as a regression guard).
 
 The ``temporalio.workflow`` module is swapped on the two workflow modules for the duration of
 ``patched_workflow_modules`` only; nothing is monkeypatched globally.
@@ -34,6 +35,7 @@ import dataclasses
 import heapq
 import inspect
 import logging
+import types
 import typing
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Sequence
 from contextvars import ContextVar
@@ -445,12 +447,28 @@ def _type_hints(handler: Callable[..., Any]) -> dict[str, Any]:
         return {}
 
 
+def _dataclass_hint(hint: Any) -> type[Any] | None:
+    """The dataclass type a handler parameter is annotated with, looking through
+    ``X | None`` / ``Optional[X]`` the way Temporal's converter tries each union member."""
+    if isinstance(hint, type) and dataclasses.is_dataclass(hint):
+        return hint
+    if typing.get_origin(hint) in (typing.Union, types.UnionType):
+        members = [
+            a for a in typing.get_args(hint) if isinstance(a, type) and dataclasses.is_dataclass(a)
+        ]
+        if len(members) == 1:
+            return members[0]
+    return None
+
+
 def _convert_payload(value: Any, hint: Any) -> Any:
     """Map a dataclass payload onto the handler's dataclass by field name (JSON semantics:
     unknown fields are dropped, missing ones take their defaults)."""
-    if not (isinstance(hint, type) and dataclasses.is_dataclass(hint)):
+    if value is None:
+        return None
+    target = _dataclass_hint(hint)
+    if target is None:
         return value
-    target: type[Any] = hint
     if isinstance(value, target):
         return value
     if dataclasses.is_dataclass(value) and not isinstance(value, type):

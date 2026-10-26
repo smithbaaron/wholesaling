@@ -50,6 +50,7 @@ async def test_today_snapshot(session: AsyncSession, seeded: KpiSeed) -> None:
     start, end = day_window(DAY, TZ)
     s = await snapshot(session, start, end)
     assert s.discovered_contacts == 2
+    assert s.qualified_unreachable == 1
     assert s.messages_sent == 3
     assert s.responses == 3
     assert s.qualified_responses == 1
@@ -72,6 +73,7 @@ async def test_rolling_7d_snapshot(session: AsyncSession, seeded: KpiSeed) -> No
     _, end = day_window(DAY, TZ)
     s = await snapshot(session, end - timedelta(days=7), end)
     assert s.discovered_contacts == 3  # the 10-day-old contact is outside
+    assert s.qualified_unreachable == 2  # the 20-day-old one is outside
     assert s.messages_sent == 5  # the 9-day-old send is outside
     assert s.responses == 4
     assert s.qualified_responses == 2

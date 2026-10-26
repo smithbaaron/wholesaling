@@ -8,6 +8,7 @@ REVIEW QUEUE
 
 KPIs (BO-21)                              today       7 days
   discovered contacts        {{ '%12d' | format(today.discovered_contacts) }} {{ '%12d' | format(week.discovered_contacts) }}
+  qualified but unreachable  {{ '%12d' | format(today.qualified_unreachable) }} {{ '%12d' | format(week.qualified_unreachable) }}
   messages sent              {{ '%12d' | format(today.messages_sent) }} {{ '%12d' | format(week.messages_sent) }}
   responses                  {{ '%12d' | format(today.responses) }} {{ '%12d' | format(week.responses) }}
   qualified responses        {{ '%12d' | format(today.qualified_responses) }} {{ '%12d' | format(week.qualified_responses) }}

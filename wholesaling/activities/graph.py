@@ -36,6 +36,7 @@ from wholesaling.db.models.enums import Actor, Channel, Direction
 from wholesaling.db.models.messaging import Message, Suppression, Thread
 from wholesaling.db.normalize import normalize_email
 from wholesaling.db.repositories.audit import AuditRepository
+from wholesaling.db.repositories.review import INBOUND_WORKFLOW_STARTED
 from wholesaling.integrations.graph import (
     DEFAULT_FOLDER,
     GraphGateway,
@@ -328,6 +329,9 @@ class FetchMessageInput:
     graph_id: str
     subscription_id: str | None = None
     change_type: str | None = None
+    #: The owning ``GraphInboundMessageWorkflow`` id (``workflow.info().workflow_id``), recorded
+    #: as the ``inbound.workflow_started`` audit event the review route falls back on.
+    workflow_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -360,6 +364,21 @@ async def fetch_message(input: FetchMessageInput) -> FetchMessageResult:
             outcome = await upsert_inbound(
                 session, msg, own_mailbox=ctx.settings.graph_mailbox, source="webhook"
             )
+            workflow_id = input.workflow_id or (
+                activity.info().workflow_id if activity.in_activity() else None
+            )
+            if workflow_id and outcome.message_id:
+                await AuditRepository(session).record(
+                    actor=Actor.SYSTEM,
+                    actor_id="graph",
+                    event_type=INBOUND_WORKFLOW_STARTED,
+                    entity_type="message",
+                    entity_id=uuid.UUID(outcome.message_id),
+                    payload={"workflow_id": workflow_id, "graph_id": input.graph_id},
+                    correlation_id=workflow_id,
+                    idempotency_key=f"inbound:{outcome.message_id}:workflow_started",
+                )
+                await session.flush()
             await session.commit()
         return FetchMessageResult(
             found=True,

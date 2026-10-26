@@ -77,6 +77,8 @@ class CapsConfig(BaseModel):
     l1_daily_investor_sends: int = 50  # OPN-06
     l1_daily_seller_email_sends: int = 200  # OPN-06
     qa_auto_reply_confidence_threshold: float = 0.85  # OPN-10 (proposed)
+    # WF-02: investor sequences started per UTC day. None = Settings.OUTREACH_KICKOFF_DAILY_CAP.
+    outreach_kickoff_daily_cap: int | None = Field(default=None, ge=0)
 
 
 class Tunables(BaseModel):

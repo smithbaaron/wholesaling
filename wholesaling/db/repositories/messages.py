@@ -38,6 +38,12 @@ def _aware(dt: datetime | None) -> datetime | None:
     return dt
 
 
+def is_auto_reply(message: Message) -> bool:
+    """A4 flagged the inbound row as an automatic reply (``meta["a4"]["is_auto_reply"]``)."""
+    a4 = (message.meta or {}).get("a4")
+    return bool(isinstance(a4, dict) and a4.get("is_auto_reply"))
+
+
 def local_day_start_utc(now: datetime, tz: str) -> datetime:
     """UTC instant at which the current local calendar day began in ``tz``."""
     zone = ZoneInfo(tz)
@@ -254,11 +260,15 @@ class MessageRepository:
         """``"opt_out"`` / ``"bounce"`` / ``"reply"`` when an inbound message on the thread
         requires the sequence to stop (INV-10, INV-23), else ``None``.
 
-        Conservative: an inbound message A4 has not classified yet counts as a reply.
+        Conservative: an inbound message A4 has not classified yet counts as a reply. An
+        automatic reply (out-of-office; A4 stored ``meta.a4.is_auto_reply``) never counts,
+        whatever class it carries (INV-22): the sequence continues past it.
         """
         inbound = await self.inbound_messages(thread_id)
         reason: str | None = None
         for msg in inbound:
+            if is_auto_reply(msg):
+                continue
             if msg.classification is MessageClassification.OPT_OUT:
                 return "opt_out"
             if msg.meta.get("is_bounce"):
@@ -275,4 +285,4 @@ class MessageRepository:
         return row
 
 
-__all__ = ["NON_SUBSTANTIVE", "MessageRepository", "local_day_start_utc"]
+__all__ = ["NON_SUBSTANTIVE", "MessageRepository", "is_auto_reply", "local_day_start_utc"]

@@ -4,6 +4,8 @@ Every function takes an ``AsyncSession`` and a half-open UTC window ``[start, en
 here writes. Definitions (decisions not spelled out in the requirements are marked *proxy*):
 
 - discovered contacts     ``contacts`` rows created in the window
+- qualified but unreachable  ``investor.unreachable`` audit events in the window: qualified
+                          investors (score >= 50) for whom A2 found no email (INV-08, GAP-07)
 - messages sent           outbound ``messages`` with ``sent_at`` in the window
 - responses               inbound ``messages`` received in the window; *qualified responses*
                           are those classified ``interested`` or ``buy_box_supplied``
@@ -54,6 +56,8 @@ QUALIFIED_RESPONSE_CLASSES = (
     MessageClassification.BUY_BOX_SUPPLIED,
 )
 CONTRACT_STATUSES = (OfferStatus.ACCEPTED,)
+# Written by ``activities/sequence_starter.record_unreachable`` (from ``run_a2``).
+EVENT_INVESTOR_UNREACHABLE = "investor.unreachable"
 
 # POL-04 thresholds.
 PROMOTION_MIN_APPROVED = 50
@@ -86,6 +90,7 @@ class KpiSnapshot:
     window_start: datetime
     window_end: datetime
     discovered_contacts: int = 0
+    qualified_unreachable: int = 0
     messages_sent: int = 0
     responses: int = 0
     qualified_responses: int = 0
@@ -184,6 +189,20 @@ async def discovered_contacts(session: AsyncSession, start: datetime, end: datet
         select(func.count())
         .select_from(Contact)
         .where(Contact.created_at >= _utc(start), Contact.created_at < _utc(end)),
+    )
+
+
+async def qualified_unreachable(session: AsyncSession, start: datetime, end: datetime) -> int:
+    """Qualified investors A2 could not find an email for (one event per investor)."""
+    return await _count(
+        session,
+        select(func.count())
+        .select_from(AuditEvent)
+        .where(
+            AuditEvent.event_type == EVENT_INVESTOR_UNREACHABLE,
+            AuditEvent.created_at >= _utc(start),
+            AuditEvent.created_at < _utc(end),
+        ),
     )
 
 
@@ -359,6 +378,7 @@ async def snapshot(session: AsyncSession, start: datetime, end: datetime) -> Kpi
         window_start=start,
         window_end=end,
         discovered_contacts=await discovered_contacts(session, start, end),
+        qualified_unreachable=await qualified_unreachable(session, start, end),
         messages_sent=await messages_sent(session, start, end),
         responses=await responses(session, start, end),
         qualified_responses=await qualified_responses(session, start, end),
@@ -580,6 +600,7 @@ __all__ = [
     "COMPLIANCE_FLAG_MARKERS",
     "CONTRACT_STATUSES",
     "DEMOTION_EDIT_RATE",
+    "EVENT_INVESTOR_UNREACHABLE",
     "PROMOTION_MAX_EDIT_RATE",
     "PROMOTION_MIN_APPROVED",
     "PROMOTION_WINDOW_DAYS",
@@ -603,6 +624,7 @@ __all__ = [
     "qa_counts",
     "qualified_buy_boxes",
     "qualified_responses",
+    "qualified_unreachable",
     "queue_stats",
     "responses",
     "reviewed_deals",

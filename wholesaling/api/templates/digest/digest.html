@@ -20,6 +20,7 @@
     <tbody>
       {% set rows = [
         ('Discovered contacts', today.discovered_contacts, week.discovered_contacts),
+        ('Qualified but unreachable', today.qualified_unreachable, week.qualified_unreachable),
         ('Messages sent', today.messages_sent, week.messages_sent),
         ('Responses', today.responses, week.responses),
         ('Qualified responses', today.qualified_responses, week.qualified_responses),

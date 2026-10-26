@@ -39,6 +39,7 @@ def _report(**queue: Any) -> KpiReport:
         window_start=NOW,
         window_end=NOW,
         discovered_contacts=4,
+        qualified_unreachable=1,
         messages_sent=12,
         responses=3,
         qualified_responses=2,
@@ -99,6 +100,7 @@ def test_render_text_contains_every_kpi_and_queue() -> None:
     assert "not time-gated" in t
     for label in [
         "discovered contacts",
+        "qualified but unreachable",
         "messages sent",
         "responses",
         "qualified responses",

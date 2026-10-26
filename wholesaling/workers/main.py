@@ -42,6 +42,10 @@ from wholesaling.activities.outreach import (
     send_window,
     update_sequence,
 )
+from wholesaling.activities.sequence_starter import (
+    run_outreach_kickoff,
+    start_investor_sequences,
+)
 from wholesaling.activities.sheets import reconcile_sources, sync_projection
 from wholesaling.activities.zapier import send_parser_email
 from wholesaling.config.settings import Settings, get_settings
@@ -55,6 +59,7 @@ from wholesaling.workflows.graph_maintenance import (
 )
 from wholesaling.workflows.hello import HelloWorkflow
 from wholesaling.workflows.investor_sequence import InvestorSequenceWorkflow
+from wholesaling.workflows.outreach_kickoff import OutreachKickoffWorkflow
 from wholesaling.workflows.reconciliation import DailyReconciliationWorkflow
 from wholesaling.workflows.sheets_sync import SheetsSyncWorkflow
 
@@ -66,6 +71,7 @@ WORKFLOWS: list[type] = [
     GraphDeltaPollWorkflow,
     GraphInboundMessageWorkflow,
     InvestorSequenceWorkflow,
+    OutreachKickoffWorkflow,
     DailyDigestWorkflow,
     SheetsSyncWorkflow,
     DailyReconciliationWorkflow,
@@ -84,6 +90,8 @@ ACTIVITIES: list[Callable[..., Any]] = [
     run_m1,
     run_a1,
     run_a2,
+    start_investor_sequences,
+    run_outreach_kickoff,
     prepare_step,
     decide_and_send,
     send_approved,

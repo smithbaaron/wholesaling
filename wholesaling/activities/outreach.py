@@ -4,7 +4,8 @@ WF-02, WF-21, XC-03).
 Called only by ``workflows/investor_sequence.py``. One step of a sequence runs through:
 
     prepare_step      render the locked template into a ``messages`` draft row (no Graph call)
-    decide_and_send   PolicyEngine -> send (Graph draft + send) | queue_for_human | blocked
+    decide_and_send   A5 QA review (INV-17: every outgoing draft) -> PolicyEngine -> send (Graph
+                      draft + send) | queue_for_human | blocked
     send_approved     a human approved a queued draft in the review queue -> Graph draft + send
     check_cancel_conditions   reply / opt-out / bounce / suppression / manual pause on the thread
     send_window       seconds until the market's business-hour window opens (INV-12)
@@ -22,7 +23,9 @@ item is not addressable that way in every gateway; the conversation id is, and i
 Outlook threads on (INV-23).
 
 Dependencies come from ``GraphActivityContext`` (gateway, session factory, settings, clock), the
-same context the Graph activities use, so one ``set_graph_context`` wires both for tests.
+same context the Graph activities use, so one ``set_graph_context`` wires both for tests. The A5
+review borrows the model runner from ``ConversationContext`` (``get_conversation_context``), which
+is built from the Graph context on first use; tests inject a scripted mock runner there.
 """
 
 from __future__ import annotations
@@ -30,12 +33,14 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from temporalio import activity
 
+from wholesaling.activities.conversation import get_conversation_context
 from wholesaling.activities.graph import (
     GraphActivityContext,
     SendDraftInput,
@@ -43,13 +48,17 @@ from wholesaling.activities.graph import (
     send_draft,
 )
 from wholesaling.agents.a3 import A3Outreach, OutreachDraft
+from wholesaling.agents.a4 import ThreadMessage
+from wholesaling.agents.a5 import A5QaAgent, QaDraft, QaInput, QaResult
 from wholesaling.agents.templates.investor_outreach import SenderIdentity, footer
-from wholesaling.db.models.enums import Actor, PolicyDecision, SequenceStatus
+from wholesaling.db.models.enums import Actor, Direction, PolicyDecision, SequenceStatus
 from wholesaling.db.models.investors import Investor
 from wholesaling.db.models.markets import Market
 from wholesaling.db.models.messaging import Message, Sequence, Thread
+from wholesaling.db.models.ops import QaReview
 from wholesaling.db.repositories.audit import AuditRepository
 from wholesaling.db.repositories.messages import MessageRepository
+from wholesaling.db.repositories.qa_reviews import QaReviewRepository
 from wholesaling.db.repositories.sequences import SequenceRepository
 from wholesaling.integrations.graph import OutboundDraft
 from wholesaling.logging import bind_correlation_id, clear_context, get_logger
@@ -417,9 +426,125 @@ async def build_policy_context(
     )
 
 
+def _thread_projection(rows: list[Message], draft: Message) -> list[ThreadMessage]:
+    """The conversation as the investor has seen it so far (sent rows only; the draft under
+    review and other unsent drafts are excluded)."""
+    out: list[ThreadMessage] = []
+    for r in rows:
+        if r.id == draft.id or (r.direction == Direction.OUT and r.sent_at is None):
+            continue
+        out.append(
+            ThreadMessage(
+                direction=r.direction.value,
+                body=r.body,
+                from_address=r.from_address,
+                subject=r.subject,
+                at=_aware(r.received_at or r.sent_at or r.created_at),
+                headers=dict((r.meta or {}).get("headers") or {}),
+            )
+        )
+    return out
+
+
+async def qa_review_draft(
+    ctx: GraphActivityContext, session: AsyncSession, row: Message, *, now: datetime
+) -> QaReview:
+    """A5 review of one sequence draft, persisted and linked to the row (INV-17, pilot GAP-04).
+
+    Idempotent: an existing review for the row (a retried activity, or one a test wrote) is
+    returned untouched. Pre-checks (XC-07 denylist, suppression, recipient, repeated ask,
+    cadence) run before the model; the locked CPY-01 copy passes them, so at L1 a clean initial
+    can auto-send on the model's approval.
+    """
+    messages = MessageRepository(session)
+    existing = await messages.latest_qa_verdict(row.id)
+    if existing is not None:
+        return existing
+    conv = get_conversation_context()
+    rows = await messages.list_thread_messages(row.thread_id)
+    thread = await messages.get_thread(row.thread_id)
+    investor = (
+        await session.get(Investor, thread.investor_id) if thread and thread.investor_id else None
+    )
+    to = list(row.to_addresses)
+    recipient = to[0] if to else ""
+    sent_out = [r for r in rows if r.direction == Direction.OUT and r.sent_at is not None]
+    last_out = sent_out[-1] if sent_out else None
+    facts: dict[str, Any] = {
+        "our_mailbox": ctx.settings.graph_mailbox,
+        "thread_subject": row.subject,
+        "market": row.meta.get("market"),
+        "template_key": row.meta.get("template_key"),
+        "sequence_step": row.sequence_step,
+    }
+    if investor is not None:
+        facts.update(
+            {
+                "investor_name": investor.canonical_name,
+                "first_name": investor.first_name,
+                "investor_type": investor.investor_type.value,
+            }
+        )
+    correlation = str(row.sequence_id) if row.sequence_id else str(row.id)
+    agent = A5QaAgent(
+        conv.runner, session, correlation_id=correlation, prompt_values=conv.prompt_values
+    )
+    qa: QaResult = await agent.review(
+        QaInput(
+            draft=QaDraft(to=to, subject=row.subject or "", body=row.body),
+            thread=_thread_projection(rows, row),
+            facts=facts,
+            recipient_suppressed=await messages.is_suppressed(recipient) if recipient else True,
+            thread_participant=thread.counterpart_address if thread else recipient,
+            last_outbound_asks_for=list((last_out.meta or {}).get("asks_for") or [])
+            if last_out
+            else (),
+            last_outbound_at=_aware(last_out.sent_at) if last_out else None,
+            now=now,
+        )
+    )
+    review = await QaReviewRepository(session).record(
+        message_id=row.id,
+        verdict=qa.verdict,
+        confidence=qa.confidence,
+        flags=qa.flags,
+        rationale=qa.rationale,
+        rewrite_body=qa.rewrite_body,
+        model=qa.model,
+        agent_run_id=qa.run_id,
+    )
+    key = row.external_message_id or str(row.id)
+    await AuditRepository(session).record(
+        actor=Actor.AGENT,
+        actor_id="A5",
+        event_type="outreach.qa_reviewed",
+        entity_type="message",
+        entity_id=row.id,
+        payload={
+            "sequence_id": str(row.sequence_id) if row.sequence_id else None,
+            "step": row.sequence_step,
+            "qa_verdict": qa.verdict.value,
+            "qa_confidence": qa.confidence,
+            "qa_flags": list(qa.flags),
+            "qa_precheck_only": qa.precheck_only,
+        },
+        correlation_id=correlation,
+        idempotency_key=f"out:{key}:qa",
+    )
+    log.info(
+        "outreach.qa_reviewed",
+        message_id=str(row.id),
+        step=row.sequence_step,
+        verdict=qa.verdict.value,
+        confidence=qa.confidence,
+        flags=qa.flags,
+    )
+    return review
+
+
 @activity.defn(name="outreach_decide_and_send")
 async def decide_and_send(input: DecideAndSendInput) -> DecideAndSendResult:
-    """Run the policy engine on a prepared draft and act on the decision.
+    """QA the prepared draft (A5), run the policy engine and act on the decision.
 
     ``send``: create the Graph draft and send it. ``queue_for_human``: leave the draft row with
     ``policy_decision=queue_for_human`` for the review queue. ``blocked``: mark blocked (the
@@ -446,6 +571,7 @@ async def decide_and_send(input: DecideAndSendInput) -> DecideAndSendResult:
                     sent=True,
                 )
             now = ctx.clock()
+            await qa_review_draft(ctx, session, row, now=now)
             pctx = await build_policy_context(session, row, tz=input.timezone, now=now)
             decision = await PolicyEngine(session).decide(action, pctx)
             row.policy_action = action.value
@@ -739,6 +865,7 @@ __all__ = [
     "decide_and_send",
     "idempotency_key",
     "prepare_step",
+    "qa_review_draft",
     "seconds_until_send_window",
     "send_approved",
     "send_window",

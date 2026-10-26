@@ -219,6 +219,46 @@ class Expected:
     model_calls: int
     one_conversation: bool
     tier: InvestorTier | None
+    #: Why the WF-02 starter did not start a sequence (``no_email`` / ``suppressed``); None
+    #: when a sequence was started.
+    starter_skip_reason: str | None = None
+    #: ``run_a2`` recorded ``investor.unreachable`` (qualified, no email; GAP-07).
+    unreachable_recorded: bool = False
+
+
+# A5 verdicts the mock model gives the locked A3 templates (every outgoing draft is QA'd,
+# INV-17). Keyed on a phrase of each rendered template body; approve with high confidence so the
+# L1 path (POL-03a/b) can auto-send. The pilot's ScriptBook installs these.
+A3_TEMPLATE_QA: dict[str, dict[str, Any]] = {
+    "We're always working on new wholesale real estate opportunities": {
+        "verdict": "approve",
+        "confidence": 0.97,
+        "flags": [],
+        "rewrite_body": None,
+        "rationale": "CPY-01 verbatim: no claims, asks for the buy box, CAN-SPAM footer present.",
+    },
+    "Following up on my note from last week": {
+        "verdict": "approve",
+        "confidence": 0.95,
+        "flags": [],
+        "rewrite_body": None,
+        "rationale": "CPY-03 follow-up: no claims, one question, footer present.",
+    },
+    "Checking in once more": {
+        "verdict": "approve",
+        "confidence": 0.95,
+        "flags": [],
+        "rewrite_body": None,
+        "rationale": "CPY-03 follow-up: no claims, asks for the buy box, footer present.",
+    },
+    "Did we miss the mark, or is now simply not a good time": {
+        "verdict": "approve",
+        "confidence": 0.95,
+        "flags": [],
+        "rewrite_body": None,
+        "rationale": "CPY-04 verbatim close: no claims, footer present.",
+    },
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -235,9 +275,6 @@ class Scenario:
     #: workflow blocks). Used by the L1 persona so one investor exercises the auto-send path
     #: while the rest of the pilot stays at L0.
     policy_scope: Mapping[PolicyAction, AutonomyLevel] = field(default_factory=dict)
-    #: Record an A5 ``approve`` on this persona's sequence drafts before the policy decision
-    #: (the A3 path has no QA call of its own; see docs/pilot.md gap list).
-    qa_standin_for_sequence: bool = False
     #: Requirement ids this scenario is evidence for.
     covers: tuple[str, ...] = ()
     #: Defects in the system under test that this scenario is currently expected to trip. A
@@ -254,17 +291,11 @@ class Scenario:
             return global_level
         return max(scoped, global_level, key=_level_rank)
 
-    def expected(
-        self,
-        level: AutonomyLevel,
-        *,
-        approve_everything: bool = True,
-        qa_standin: bool = True,
-    ) -> Expected:
+    def expected(self, level: AutonomyLevel, *, approve_everything: bool = True) -> Expected:
         """Derive the end state from the script for a run at ``level`` (the global level).
 
-        ``qa_standin=False`` (Temporal mode) means nobody can write the A5 approval the L1
-        initial needs, so even the L1 persona's initial queues."""
+        Every sequence draft gets an A5 review (the locked templates approve), so at L1 the
+        initial auto-sends (POL-03a) and, once it went out, so do the follow-ups (POL-03b)."""
         if not self.has_contact:
             return Expected(
                 sequence_started=False,
@@ -284,12 +315,15 @@ class Scenario:
                 model_calls=0,
                 one_conversation=True,
                 tier=self.tier,
+                starter_skip_reason="no_email",
+                unreachable_recorded=True,
             )
         if self.suppress_before_start:
+            # The WF-02 starter never starts a sequence for a suppressed address (POL-03l).
             return Expected(
-                sequence_started=True,
-                sequence_status="cancelled",
-                cancel_reason="suppressed",
+                sequence_started=False,
+                sequence_status=None,
+                cancel_reason=None,
                 touches_sent=0,
                 auto_touches=0,
                 inbound_rows=0,
@@ -304,6 +338,7 @@ class Scenario:
                 model_calls=0,
                 one_conversation=True,
                 tier=self.tier,
+                starter_skip_reason="suppressed",
             )
 
         # Touches: the sequence runs until the first cancelling inbound message, or parks on
@@ -316,10 +351,11 @@ class Scenario:
                 cancel_reason = r.expect.signal
                 break
         initial_level = self.level_for(PolicyAction.INVESTOR_INITIAL_OUTREACH, level)
-        auto_initial = (
-            initial_level is not AutonomyLevel.L0 and self.qa_standin_for_sequence and qa_standin
-        ) or initial_level is AutonomyLevel.L2
-        followups_auto = self.level_for(PolicyAction.INVESTOR_FOLLOWUP, level) is AutonomyLevel.L2
+        auto_initial = initial_level is not AutonomyLevel.L0  # L1: QA approved + under cap
+        # L1 follow-ups auto-send once the initial went out (human or auto) and QA approved.
+        followups_auto = (
+            self.level_for(PolicyAction.INVESTOR_FOLLOWUP, level) is not AutonomyLevel.L0
+        )
         touches = 0
         auto_touches = 0
         queued = 0
@@ -463,7 +499,7 @@ SCENARIOS: tuple[Scenario, ...] = (
     Scenario(
         id="l1_auto_send_then_price_talk",
         title=(
-            "L1 persona: QA-approved initial auto-sends, a clean reply auto-sends at L1, then "
+            "L1 persona: A5-approved initial auto-sends, a clean reply auto-sends at L1, then "
             "price/contract talk queues at L1"
         ),
         market="Houston",
@@ -473,7 +509,6 @@ SCENARIOS: tuple[Scenario, ...] = (
             PolicyAction.INVESTOR_INITIAL_OUTREACH: AutonomyLevel.L1,
             PolicyAction.INVESTOR_REPLY: AutonomyLevel.L1,
         },
-        qa_standin_for_sequence=True,
         covers=("POL-01", "POL-03a", "POL-03c", "POL-09", "XC-01"),
         replies=(
             ScriptedReply(
@@ -898,22 +933,6 @@ SCENARIOS: tuple[Scenario, ...] = (
         investor="Harbor Assets Inc 2",
         tier="prospect",
         covers=("INV-22", "INV-10", "INV-14"),
-        known_defects={
-            "GAP-02": (
-                "touches_sent",
-                "auto_touches",
-                "sequence_status",
-                "cancel_reason",
-                "inbound_rows",
-                "classifications",
-                "reply_drafts",
-                "replies_sent",
-                "replies_auto_sent",
-                "queued_items",
-                "buy_box_versions",
-                "model_calls",
-            )
-        },
         replies=(
             ScriptedReply(
                 after_touch=1,
@@ -1053,12 +1072,15 @@ SCENARIOS: tuple[Scenario, ...] = (
     ),
     Scenario(
         id="suppressed_before_start",
-        title="Address suppressed before the sequence starts: nothing is ever drafted or sent",
+        title=(
+            "Address suppressed by hand before the starter runs: no sequence, nothing drafted "
+            "or sent"
+        ),
         market="Columbus",
         investor="River Holdings LLC 4",
         tier="prospect",
         suppress_before_start=True,
-        covers=("POL-03l", "INV-05", "WF-21"),
+        covers=("POL-03l", "INV-05", "WF-02"),
     ),
     Scenario(
         id="priority_before_prospect",
@@ -1080,6 +1102,7 @@ def scenarios_for_markets(markets: tuple[str, ...] | list[str]) -> list[Scenario
 
 
 __all__ = [
+    "A3_TEMPLATE_QA",
     "OOO_HEADERS",
     "PILOT_MARKETS",
     "PRIORITY_SCORE",

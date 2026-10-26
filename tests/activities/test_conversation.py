@@ -391,7 +391,7 @@ async def test_auto_reply_is_ambiguous_and_never_cancels_the_sequence(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     provider.script(AgentId.A4, TaskKind.CLASSIFY, parsed=classify_as("interested"))
-    message_id, _ = await inbound(
+    message_id, conversation_id = await inbound(
         gw,
         "I am out of the office until Nov 3.",
         subject="Automatic reply: Deals",
@@ -402,6 +402,36 @@ async def test_auto_reply_is_ambiguous_and_never_cancels_the_sequence(
     assert result.signalled is None and temporal.signals == {}
     assert provider.requests == [], "deterministic detection, no model call"
     assert await count(session_factory, AgentRun) == 0
+
+    # GAP-02: the sequence's own cancel check must not treat the out-of-office as a reply either.
+    from wholesaling.activities import outreach
+
+    async with session_factory() as s:
+        row = await s.get(Message, uuid.UUID(message_id))
+        assert row is not None
+        seq = (
+            await s.execute(select(Sequence).where(Sequence.investor_id == investor.id))
+        ).scalar_one()
+        seq.thread_id = row.thread_id
+        await s.commit()
+        seq_id = str(seq.id)
+    check = await outreach.check_cancel_conditions(
+        outreach.CheckCancelInput(sequence_id=seq_id, contact_email=INVESTOR_EMAIL)
+    )
+    assert check.cancel_reason is None and not check.paused
+
+    # The real reply that follows cancels: ``reply`` signalled and the check agrees.
+    provider.script(AgentId.A4, TaskKind.CLASSIFY, parsed=classify_as("buy_box_supplied"))
+    real_id, _ = await inbound(
+        gw, "Back now. Rentals under 150k, any condition.", conversation_id=conversation_id
+    )
+    real = await conv.classify_inbound(conv.ClassifyInboundInput(message_id=real_id))
+    assert real.signalled == "reply" and not real.is_auto_reply
+    assert [sig for sig, _ in temporal.signals[SEQUENCE_WF]] == ["reply"]
+    check = await outreach.check_cancel_conditions(
+        outreach.CheckCancelInput(sequence_id=seq_id, contact_email=INVESTOR_EMAIL)
+    )
+    assert check.cancel_reason == "reply"
 
 
 async def test_unrelated_and_outbound_and_bounce_do_not_signal(
@@ -595,6 +625,62 @@ async def classified(
     message_id, conversation_id = await inbound(gw, body)
     await conv.classify_inbound(conv.ClassifyInboundInput(message_id=message_id))
     return message_id, conversation_id
+
+
+async def test_workflow_id_passed_by_the_caller_is_resolvable_outside_temporal(
+    ctx: conv.ConversationContext,
+    gw: MockGraphGateway,
+    provider: MockModelProvider,
+    investor: Investor,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    """GAP-05: with no Temporal activity context the workflow id comes from the input, and the
+    ``inbound.workflow_started`` event ``fetch_message`` writes is the review route's fallback."""
+    from wholesaling.db.repositories.review import (
+        INBOUND_WORKFLOW_STARTED,
+        META_WORKFLOW_ID_KEY,
+        ReviewRepository,
+    )
+
+    provider.script(AgentId.A4, TaskKind.CLASSIFY, parsed=classify_as("interested"))
+    msg = gw.inject_inbound(from_address=INVESTOR_EMAIL, subject="RE: Deals", body="Interested.")
+    fetched = await graph_acts.fetch_message(
+        graph_acts.FetchMessageInput(graph_id=msg.graph_id, workflow_id="graph-inbound-pilot")
+    )
+    assert fetched.found and fetched.message_id is not None
+    message_id = fetched.message_id
+    await conv.classify_inbound(conv.ClassifyInboundInput(message_id=message_id))
+    queued = await conv.draft_and_qa_reply(
+        conv.DraftReplyInput(message_id=message_id, workflow_id="graph-inbound-pilot")
+    )
+    assert queued.queued and queued.draft_message_id
+    row = await reply_row(session_factory, message_id)
+    assert row.meta[META_WORKFLOW_ID_KEY] == "graph-inbound-pilot"
+    async with session_factory() as s:
+        events = (
+            (
+                await s.execute(
+                    select(AuditEvent).where(AuditEvent.event_type == INBOUND_WORKFLOW_STARTED)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert [(str(e.entity_id), e.payload["workflow_id"]) for e in events] == [
+            (message_id, "graph-inbound-pilot")
+        ]
+        draft_row = await s.get(Message, uuid.UUID(queued.draft_message_id))
+        assert draft_row is not None
+        assert await ReviewRepository(s).resolve_workflow_id(draft_row) == "graph-inbound-pilot"
+        # Even without the meta key the route finds the workflow through the inbound row's event.
+        draft_row.meta = {k: v for k, v in draft_row.meta.items() if k != META_WORKFLOW_ID_KEY}
+        await s.flush()
+        assert await ReviewRepository(s).resolve_workflow_id(draft_row) == "graph-inbound-pilot"
+    # A re-fetch (duplicate notification) writes the event once.
+    await graph_acts.fetch_message(
+        graph_acts.FetchMessageInput(graph_id=msg.graph_id, workflow_id="graph-inbound-pilot")
+    )
+    assert await count(session_factory, AuditEvent, event_type=INBOUND_WORKFLOW_STARTED) == 1
 
 
 async def test_l0_queues_draft_in_same_conversation_and_sends_nothing(

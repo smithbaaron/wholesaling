@@ -1,7 +1,9 @@
 """``PilotRunner``: the whole investor loop on SQLite in mock mode, without a Temporal server.
 
     fresh database -> policies seeded at L0 -> M1 -> A1 + A2 for the pilot markets
-      -> one InvestorSequenceWorkflow per persona with a contact (priority tier first)
+      -> the WF-02 starter (``activities/sequence_starter.py``) lists each market's eligible
+         investors, priority tier first, and starts one InvestorSequenceWorkflow per persona
+         with a primary email (suppressed addresses and investors without an email are skipped)
       -> scripted replies injected into the mock Graph gateway at the scripted moment and
          announced through POST /webhooks/graph (twice: the duplicate must be a no-op)
       -> GraphInboundMessageWorkflow: A4 classify -> buy box -> A4 draft -> A5 QA -> policy
@@ -11,11 +13,11 @@
       -> delta poll replay (INV-24) -> collect -> grade -> PilotReport
 
 Everything the production worker would run is the production code: activities, repositories,
-policy engine, review route, webhook route, workflow ``run()`` loops. Only three things are
-stand-ins, and each is listed in the report's gap section: the simulator that drives the
-workflow loops (``sim.py``), the A5 approval written on the L1 persona's sequence draft (the A3
-path has no QA call), and the ``inbound.workflow_started`` audit event that lets the review
-route find an inbound workflow when no Temporal activity context exists.
+policy engine, review route, webhook route, workflow ``run()`` loops, the sequence starter and
+the A5 review of every sequence draft. The one stand-in is the simulator that drives the workflow
+loops (``sim.py``) in place of a Temporal server; the pilot schedules the starter's candidates
+two simulated minutes apart (one workflow at a time) instead of letting the kickoff activity
+start them in one go, so a run stays deterministic.
 """
 
 from __future__ import annotations
@@ -40,6 +42,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from wholesaling.activities import conversation as conv_acts
 from wholesaling.activities import discovery as discovery_acts
 from wholesaling.activities import graph as graph_acts
+from wholesaling.activities import sequence_starter as starter_acts
 from wholesaling.agents.a4 import MODEL_OVERRIDES
 from wholesaling.agents.llm.mock import MockModelProvider, ScriptedResponse
 from wholesaling.agents.llm.models import ModelRequest, TaskKind
@@ -70,21 +73,17 @@ from wholesaling.db.models.enums import (
     Direction,
     MarketTier,
     PolicyDecision,
-    QaVerdict,
-    SequenceKind,
 )
 from wholesaling.db.models.messaging import Sequence as SequenceRow
 from wholesaling.db.normalize import normalize_email
 from wholesaling.db.repositories.audit import AuditRepository
 from wholesaling.db.repositories.policies import PolicyRepository
-from wholesaling.db.repositories.qa_reviews import QaReviewRepository
-from wholesaling.db.repositories.review import INBOUND_WORKFLOW_STARTED
-from wholesaling.db.repositories.sequences import SequenceRepository
 from wholesaling.integrations.data.mock import mock_data_providers
 from wholesaling.integrations.graph import MockGraphGateway
 from wholesaling.logging import configure_logging
 from wholesaling.pilot.report import Aggregates, Check, Gap, PilotReport, ScenarioResult, Status
 from wholesaling.pilot.scenarios import (
+    A3_TEMPLATE_QA,
     PILOT_MARKETS,
     PRIORITY_SCORE,
     Expected,
@@ -103,10 +102,6 @@ from wholesaling.reporting.kpis import all_promotion_readiness
 from wholesaling.workflows.graph_maintenance import inbound_workflow_id
 from wholesaling.workflows.investor_sequence import (
     WORKFLOW_NAME as SEQUENCE_WORKFLOW,
-)
-from wholesaling.workflows.investor_sequence import (
-    InvestorSequenceInput,
-    investor_sequence_workflow_id,
 )
 
 PILOT_MAILBOX = "deals@pilot.example"
@@ -158,6 +153,8 @@ class Persona:
     sequence_id: uuid.UUID | None = None
     workflow_id: str | None = None
     start_order: int | None = None
+    starter_skip_reason: str | None = None  # why the WF-02 starter did not start a sequence
+    unreachable_recorded: bool = False  # run_a2 wrote ``investor.unreachable`` (GAP-07)
     touches: dict[int, datetime] = field(default_factory=dict)  # step -> sent at
     auto_touches: set[int] = field(default_factory=set)
     scheduled_replies: set[int] = field(default_factory=set)
@@ -207,6 +204,11 @@ class ScriptBook:
         for scenario in scenarios:
             for index, reply in enumerate(scenario.replies):
                 self._install_reply(scenario, index, reply)
+        # A5 on the locked A3 templates (every sequence draft is QA'd before the policy).
+        for needle, verdict in A3_TEMPLATE_QA.items():
+            self.provider.script_matching(
+                self._a5_predicate(needle), self._responder("a3_template", TaskKind.QA, verdict)
+            )
         self.provider.script_matching(lambda _r: True, self._unscripted)
 
     def _install_reply(self, scenario: Scenario, index: int, reply: ScriptedReply) -> None:
@@ -356,7 +358,7 @@ class PilotRunner:
         self._rng = random.Random(0)
         self._level = AutonomyLevel.L0
         self._approve_everything = True
-        self._qa_standin_available = True
+        self.starter_skipped: dict[str, dict[str, int]] = {}  # market -> skip histogram
         self._app: FastAPI | None = None
         self._client: AsyncClient | None = None
         self.engine: AsyncEngine | None = None
@@ -405,6 +407,7 @@ class PilotRunner:
             )
         )
         discovery_acts.configure(self.session_factory, self.providers)
+        starter_acts.set_starter_context(self._starter_context())
         self.sim.observers.append(self._observe_activity)
         try:
             await self._discover(scenarios)
@@ -423,9 +426,19 @@ class PilotRunner:
             self._client = None
             conv_acts.set_conversation_context(None)
             graph_acts.set_graph_context(None)
+            starter_acts.set_starter_context(None)
             discovery_acts.reset()
             if self.engine is not None:
                 await self.engine.dispose()
+
+    def _starter_context(self) -> starter_acts.StarterContext:
+        assert self.session_factory is not None
+        return starter_acts.StarterContext(
+            session_factory=self.session_factory,
+            temporal=self.gateway,
+            settings=self.settings,
+            clock=self.sim.now,
+        )
 
     # -- phase 1: database ----------------------------------------------------------------------
 
@@ -460,7 +473,8 @@ class PilotRunner:
                 raise LookupError(msg)
             self.a1_results[name] = await discovery_acts.run_a1(str(market.id), AS_OF.isoformat())
             for investor_id in self.a1_results[name].get("prospect_ids", []):
-                await discovery_acts.run_a2(str(investor_id))
+                # The starter runs on the simulated clock (phase 4), not inline here.
+                await discovery_acts.run_a2(str(investor_id), start_sequence=False)
         async with self.session_factory() as s:
             for scenario in scenarios:
                 if scenario.is_cohort_check:
@@ -484,6 +498,10 @@ class PilotRunner:
                     Contact.is_primary.is_(True),
                 )
                 contact = (await s.execute(contact_stmt)).scalars().first()
+                unreachable = (
+                    await AuditRepository(s).get_by_idempotency_key(f"a2:{investor.id}:unreachable")
+                    is not None
+                )
                 self.personas[scenario.id] = Persona(
                     scenario=scenario,
                     investor_id=investor.id,
@@ -491,6 +509,7 @@ class PilotRunner:
                     market=market.name,
                     score=investor.score,
                     email=contact.value if contact else None,
+                    unreachable_recorded=unreachable,
                 )
             # suppressed_before_start: an operator put the address on the list by hand.
             for persona in self.personas.values():
@@ -548,71 +567,79 @@ class PilotRunner:
         changed = {a: lvl for a, lvl in forced.items() if lvl is not current[a]}
         return changed, {a: current[a] for a in changed}
 
-    # -- phase 4: sequences -----------------------------------------------------------------------
+    # -- phase 4: sequences (the WF-02 starter on the simulated clock) ---------------------------
 
-    def _ordered_personas(self) -> list[Persona]:
-        order = {name: i for i, name in enumerate(self.markets)}
-        return sorted(
-            (p for p in self.personas.values() if p.email),
-            key=lambda p: (order[p.market], -(p.score or 0), p.investor_name),
-        )
+    async def _starter_candidates(self) -> list[tuple[Persona, starter_acts.StartCandidate]]:
+        """The production starter's ordered candidates per pilot market (priority tier first),
+        bound to their personas; the starter's skip histogram is kept for the report."""
+        assert self.session_factory is not None
+        by_investor = {p.investor_id: p for p in self.personas.values()}
+        out: list[tuple[Persona, starter_acts.StartCandidate]] = []
+        async with self.session_factory() as s:
+            for name in self.markets:
+                market = (await s.execute(select(Market).where(Market.name == name))).scalar_one()
+                candidates, skipped = await starter_acts.list_startable_investors(s, market.id)
+                self.starter_skipped[name] = skipped
+                for candidate in candidates:
+                    persona = by_investor.get(candidate.investor_id)
+                    if persona is None:
+                        self._operator.log.append(
+                            {"unbound_candidate": candidate.to_json(), "market": name}
+                        )
+                        continue
+                    out.append((persona, candidate))
+            # Personas the starter left out: record the reason it would give.
+            for persona in self.personas.values():
+                if persona.investor_id in {c.investor_id for _, c in out}:
+                    continue
+                investor = await s.get(Investor, persona.investor_id)
+                market_row = (
+                    await s.get(Market, investor.market_id)
+                    if investor is not None and investor.market_id
+                    else None
+                )
+                if investor is not None and market_row is not None:
+                    persona.starter_skip_reason = await starter_acts.skip_reason(
+                        s, investor, market_row
+                    )
+        return out
 
     async def _schedule_sequence_starts(self) -> None:
-        """WF-02's starter does not exist yet (gap); the pilot plays that role: one sequence
-        row + one workflow per persona with a primary email, priority tier first."""
-        for index, persona in enumerate(self._ordered_personas()):
+        """One start event per candidate, two simulated minutes apart, in the starter's order:
+        the same rows and workflow ids ``run_outreach_kickoff`` would create in one pass, but one
+        workflow at a time so the simulation stays deterministic."""
+        for index, (persona, candidate) in enumerate(await self._starter_candidates()):
             at = self.sim_start + SEQUENCE_START_SPACING * index
 
-            async def _start(p: Persona = persona, order: int = index) -> None:
-                await self._start_sequence(p, order)
+            async def _start(
+                p: Persona = persona, c: starter_acts.StartCandidate = candidate, order: int = index
+            ) -> None:
+                await self._start_sequence(p, c, order)
 
             self.sim.schedule(at, _start, label=f"start:{persona.scenario.id}")
 
-    async def _start_sequence(self, persona: Persona, order: int) -> None:
-        assert self.session_factory is not None and persona.email is not None
+    async def _start_sequence(
+        self, persona: Persona, candidate: starter_acts.StartCandidate, order: int
+    ) -> None:
         scope, saved = await self._scoped_levels(persona)
         if scope:
             await self._set_levels(scope, f"pilot scope for {persona.scenario.id}")
-        async with self.session_factory() as s:
-            repo = SequenceRepository(s)
-            token = uuid.UUID(int=self._rng.getrandbits(128), version=4)
-            row, _ = await repo.create(
-                kind=SequenceKind.INVESTOR,
-                investor_id=persona.investor_id,
-                temporal_workflow_id=f"investor-sequence:pending:{token}",
-            )
-            row.temporal_workflow_id = investor_sequence_workflow_id(str(row.id))
-            await s.commit()
-            persona.sequence_id = row.id
-            persona.workflow_id = row.temporal_workflow_id
+        started = await starter_acts.start_investor_sequence(self._starter_context(), candidate)
+        persona.sequence_id = uuid.UUID(started.sequence_id)
+        persona.workflow_id = started.workflow_id
         persona.start_order = order
-        self._sequence_persona[str(persona.sequence_id)] = persona
-        await self.gateway.start_workflow(
-            SEQUENCE_WORKFLOW,
-            [
-                InvestorSequenceInput(
-                    sequence_id=str(persona.sequence_id),
-                    investor_id=str(persona.investor_id),
-                    contact_email=persona.email,
-                    market=persona.market,
-                )
-            ],
-            workflow_id=persona.workflow_id,
-        )
+        self._sequence_persona[started.sequence_id] = persona
         await self.sim.settle()
         if scope:
             await self._set_levels(saved, f"pilot scope restored after {persona.scenario.id}")
 
-    # -- activity observation: QA stand-in, touch timing, workflow-id audit --------------------
+    # -- activity observation: touch timing, reply scheduling ----------------------------------
 
     async def _observe_activity(self, call: ActivityCall) -> None:
         assert self.session_factory is not None
         if call.name == "prepare_step":
             result = call.result
             self._message_step[result.message_id] = (call.arg.sequence_id, call.arg.step)
-            persona = self._sequence_persona.get(call.arg.sequence_id)
-            if persona and persona.scenario.qa_standin_for_sequence and result.created:
-                await self._qa_standin(uuid.UUID(result.message_id), call.arg.step)
         elif call.name in ("decide_and_send", "send_approved") and call.result.sent:
             key = self._message_step.get(call.arg.message_id)
             if key is None:
@@ -625,41 +652,6 @@ class PilotRunner:
             if call.name == "decide_and_send":
                 persona.auto_touches.add(step)
             self._schedule_replies(persona, touch=step + 1)
-        elif call.name == "draft_and_qa_reply":
-            result = call.result
-            if result.queued and not result.already_processed and result.draft_message_id:
-                await self._record_inbound_workflow(result.draft_message_id, call.workflow_id)
-
-    async def _qa_standin(self, message_id: uuid.UUID, step: int) -> None:
-        """A5 has no hook in the A3 path; write the approval the L1 condition requires."""
-        assert self.session_factory is not None
-        async with self.session_factory() as s:
-            await QaReviewRepository(s).record(
-                message_id=message_id,
-                verdict=QaVerdict.APPROVE,
-                confidence=Decimal("0.97"),
-                flags=[],
-                rationale=f"pilot stand-in for A5 on sequence step {step} (locked template)",
-                model="pilot-standin",
-            )
-            await s.commit()
-
-    async def _record_inbound_workflow(self, draft_message_id: str, workflow_id: str) -> None:
-        """Outside a Temporal activity ``meta.temporal_workflow_id`` is never set; write the
-        documented fallback the review route reads (``inbound.workflow_started``)."""
-        assert self.session_factory is not None
-        async with self.session_factory() as s:
-            await AuditRepository(s).record(
-                actor=Actor.SYSTEM,
-                actor_id="pilot",
-                event_type=INBOUND_WORKFLOW_STARTED,
-                entity_type="message",
-                entity_id=uuid.UUID(draft_message_id),
-                payload={"workflow_id": workflow_id, "source": "pilot-sim"},
-                correlation_id=workflow_id,
-                idempotency_key=f"pilot:{draft_message_id}:workflow",
-            )
-            await s.commit()
 
     # -- phase 5: scripted inbound ------------------------------------------------------------
 
@@ -949,11 +941,7 @@ class PilotRunner:
         }
 
     def _expected(self, scenario: Scenario) -> Expected:
-        return scenario.expected(
-            self._level,
-            approve_everything=self._approve_everything,
-            qa_standin=self._qa_standin_available,
-        )
+        return scenario.expected(self._level, approve_everything=self._approve_everything)
 
     async def _grade_persona(self, s: AsyncSession, persona: Persona) -> ScenarioResult:
         scenario = persona.scenario
@@ -1034,6 +1022,18 @@ class PilotRunner:
             Check("model_calls", expected.model_calls, rows["model_calls"], True),
             Check("one_conversation", expected.one_conversation, one_conversation, True),
             Check("tier", expected.tier, persona.tier if persona.score is not None else None, True),
+            Check(
+                "starter_skip_reason",
+                expected.starter_skip_reason,
+                persona.starter_skip_reason,
+                True,
+            ),
+            Check(
+                "unreachable_recorded",
+                expected.unreachable_recorded,
+                persona.unreachable_recorded,
+                True,
+            ),
         ]
         # Per-message expectations (classification detail, stripping, dates, QA). Only the
         # first cancelling message finds an active sequence to signal; later ones find none.
@@ -1475,96 +1475,29 @@ class PilotRunner:
         return checks
 
     def _gaps(self, a: Aggregates) -> list[Gap]:
-        gaps = [
-            Gap(
-                id="GAP-01",
-                severity="high",
-                where=(
-                    "activities/conversation.py `_signal_sequence` vs "
-                    "workflows/investor_sequence.py `reply`/`opt_out`/`bounce`"
-                ),
-                behaviour=(
-                    "The inbound pipeline signals the sequence with a payload "
-                    "(ReplySignal / OptOutSignal / BounceSignal) but the sequence's handlers take "
-                    "no argument. The Temporal SDK invokes handler(*args), so the signal raises "
-                    "TypeError inside the workflow and fails the workflow task (retried forever: "
-                    "the sequence stalls). The pilot simulator records the error and re-delivers "
-                    "without the payload so the rest of the loop can be measured."
-                ),
-                expected=(
-                    "Either the handlers accept an optional payload "
-                    "(`def reply(self, payload: ReplySignal | None = None)`) or the activities "
-                    "send no payload. The existing Temporal e2e tests signal without payloads, so "
-                    "this contract was never exercised end to end."
-                ),
-                evidence=f"{a.signal_contract_errors} contract errors in this run (see list).",
-            ),
-            Gap(
-                id="GAP-02",
-                severity="high",
-                where="db/repositories/messages.py `thread_cancel_reason`",
-                behaviour=(
-                    "An automatic (out-of-office) reply is stored with classification `ambiguous`; "
-                    "`thread_cancel_reason` treats every non-`unrelated` inbound as a reply, so "
-                    "`check_cancel_conditions` cancels the sequence at the next step even though "
-                    "A4 flagged `is_auto_reply` and sent no signal."
-                ),
-                expected=(
-                    "INV-22 / docs: auto-replies never cancel a sequence. The check should skip "
-                    "rows whose `meta.a4.is_auto_reply` is true (or A4 should store a class the "
-                    "check ignores)."
-                ),
-                evidence="scenario ooo_then_real_reply (known_defect).",
-            ),
-            Gap(
-                id="GAP-03",
-                severity="high",
-                where=(
-                    "WF-02 sequence starter (A2 qualified contact -> SequenceRepository.create "
-                    "-> start_workflow)"
-                ),
-                behaviour=(
-                    "No code starts an InvestorSequenceWorkflow after A2 finds a primary email; "
-                    "docs/agents/outreach.md describes the starter but nothing implements it, and "
-                    "nothing orders priority-tier investors first (INV-04)."
-                ),
-                expected=(
-                    "An activity/workflow that creates the sequence row with "
-                    "`investor_sequence_workflow_id(row.id)` and starts the workflow, priority "
-                    "tier first, idempotent per investor. The pilot runner plays this role."
-                ),
-            ),
-            Gap(
-                id="GAP-04",
-                severity="medium",
-                where="agents/a3.py + activities/outreach.py (no A5 QA on sequence drafts)",
-                behaviour=(
-                    "POL-03a L1 requires `qa_verdict == approve` but nothing writes a qa_reviews "
-                    "row for A3 drafts, so at L1 every initial queues for a human and L1 can never "
-                    "auto-send in production. The pilot writes a stand-in approval for the L1 "
-                    "persona."
-                ),
-                expected=(
-                    "Run A5 (or a deterministic pre-check pass for locked templates) in "
-                    "`prepare_step`/`decide_and_send` and record the verdict."
-                ),
-            ),
-            Gap(
-                id="GAP-05",
-                severity="medium",
-                where="activities/conversation.py `draft_and_qa_reply` + db/repositories/review.py",
-                behaviour=(
-                    "The review route finds an inbound reply's workflow via "
-                    "`meta.temporal_workflow_id` (set from `activity.info()` only inside "
-                    "Temporal) or an `inbound.workflow_started` audit event that nothing writes. "
-                    "Outside a Temporal activity (unit tests, this simulator, any direct call) "
-                    "queued replies are unresolvable (422)."
-                ),
-                expected=(
-                    "Write the `inbound.workflow_started` event where the workflow starts "
-                    "(webhook / delta path), or pass the workflow id into the activity input."
-                ),
-            ),
+        """Open gaps the run evidences. GAP-01..05 and GAP-07 from the first pilot are fixed
+        (BO-09 follow-up; see docs/pilot.md); GAP-01 is kept as a regression guard that only
+        appears when a signal payload is rejected again."""
+        gaps: list[Gap] = []
+        if a.signal_contract_errors:
+            gaps.append(
+                Gap(
+                    id="GAP-01",
+                    severity="high",
+                    where=(
+                        "activities/conversation.py `_signal_sequence` vs "
+                        "workflows/investor_sequence.py `reply`/`opt_out`/`bounce`"
+                    ),
+                    behaviour=(
+                        "A sequence signal carried a payload the handler could not accept "
+                        "(regression of the fixed GAP-01: both sides must import the payload "
+                        "dataclasses from wholesaling/signals.py)."
+                    ),
+                    expected="Zero signal contract errors.",
+                    evidence=f"{a.signal_contract_errors} contract errors in this run (see list).",
+                )
+            )
+        gaps.append(
             Gap(
                 id="GAP-06",
                 severity="low",
@@ -1575,24 +1508,15 @@ class PilotRunner:
                     "cap queues."
                 ),
                 expected=(
-                    "Intended conservatism (POL-03c); noted so drafts avoid restating figures. No "
-                    "change required."
+                    "Intended conservatism (POL-03c), documented in docs/agents/conversation.md; "
+                    "drafts should avoid restating figures. No change required."
                 ),
-            ),
-            Gap(
-                id="GAP-07",
-                severity="low",
-                where="integrations/data/fixtures (A2 coverage)",
-                behaviour=(
-                    "Gulf Coast Rentals LLC (Houston, score 76, priority) has no email candidate, "
-                    "so a priority investor silently gets no outreach; nothing records or surfaces "
-                    "'qualified but unreachable'."
+                evidence=(
+                    f"QA flags this run: {a.qa_flags or {}}; "
+                    f"replies auto-sent {a.replies_auto_sent}."
                 ),
-                expected=(
-                    "A2 result should mark the investor (status/flag) so the digest can show it."
-                ),
-            ),
-        ]
+            )
+        )
         return gaps
 
     def _notes(self) -> list[str]:
@@ -1614,6 +1538,8 @@ class PilotRunner:
             f"({self._operator.approvals_with_edits} with edits), delay {self.operator_delay}"
         )
         notes.append(f"delta poll replay: {self.delta_replay}")
+        for market, skipped in self.starter_skipped.items():
+            notes.append(f"WF-02 starter {market}: skipped {skipped or {}}")
         return notes
 
     async def _record_report(self, report: PilotReport) -> None:

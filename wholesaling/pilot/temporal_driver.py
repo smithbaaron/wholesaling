@@ -6,15 +6,15 @@ orchestration differs:
 - a real ``Worker`` (``workers.main.build_worker``) runs the real workflows and activities;
 - ``LiveTemporalGateway`` over the test environment's client is the gateway the webhook, the
   review route and the conversation activities use, so the ``reply`` / ``opt_out`` / ``bounce``
-  signals and the ``human_decision`` signal travel through Temporal for real (this is where
-  GAP-01 shows up as a failed workflow task rather than a recorded contract error);
+  signals and the ``human_decision`` signal travel through Temporal for real (a payload the
+  handler could not take would fail the workflow task here, where the simulator records a
+  contract error);
 - time moves with ``env.sleep`` instead of the simulator: the driver polls the database for
   newly sent touches, injects the scripted replies when they fall due, approves queued drafts
   through the review route after the operator delay, and otherwise skips time forward;
-- no activity hooks exist in this mode, so the L1 persona's QA stand-in cannot be written
-  between ``prepare_step`` and ``decide_and_send`` (its initial queues like every other at
-  L0/L1) and the review route resolves inbound workflows from ``meta.temporal_workflow_id``
-  the way production does.
+- the WF-02 starter (``activities/sequence_starter.start_investor_sequence``) starts each
+  persona's sequence through the live gateway, and the review route resolves inbound workflows
+  from ``meta.temporal_workflow_id`` the way production does.
 
 The test-server binary is downloaded on first use; where that is blocked the driver raises
 ``RuntimeError`` and the CLI exits 2. **This driver has not been executed in the build sandbox**
@@ -35,26 +35,21 @@ from sqlalchemy import select
 from wholesaling.activities import conversation as conv_acts
 from wholesaling.activities import discovery as discovery_acts
 from wholesaling.activities import graph as graph_acts
+from wholesaling.activities import sequence_starter as starter_acts
 from wholesaling.agents.a4 import MODEL_OVERRIDES
 from wholesaling.agents.llm.routing import ModelRouter
 from wholesaling.agents.llm.runner import AgentRunner
 from wholesaling.db.models import Message
-from wholesaling.db.models.enums import Direction, SequenceKind
-from wholesaling.db.repositories.sequences import SequenceRepository
+from wholesaling.db.models.enums import Direction
 from wholesaling.pilot.report import PilotReport
 from wholesaling.pilot.runner import (
     DEFAULT_OPERATOR_DELAY,
     DEFAULT_SIM_START,
-    SEQUENCE_WORKFLOW,
     Persona,
     PilotRunner,
 )
 from wholesaling.pilot.scenarios import PILOT_MARKETS, ScriptedReply, scenarios_for_markets
 from wholesaling.policy.actions import AutonomyLevel, PolicyAction
-from wholesaling.workflows.investor_sequence import (
-    InvestorSequenceInput,
-    investor_sequence_workflow_id,
-)
 
 TASK_QUEUE = "pilot-temporal"
 POLL_INTERVAL_S = 0.25
@@ -85,7 +80,6 @@ class TemporalPilotRunner(PilotRunner):
         # The worker polls TASK_QUEUE; the webhook route starts inbound workflows on the
         # settings' default queue, so the settings must name it before the app is built.
         self.settings = self.settings.model_copy(update={"temporal_task_queue": TASK_QUEUE})
-        self._qa_standin_available = False  # no activity hook between prepare_step and decide
         self._env: Any = None
         self._skipped = timedelta(0)
         self._stalled = False
@@ -172,6 +166,7 @@ class TemporalPilotRunner(PilotRunner):
             )
         )
         discovery_acts.configure(self.session_factory, self.providers)
+        starter_acts.set_starter_context(self._starter_context())
         try:
             await self._discover(scenarios)
             worker = build_worker(env.client, TASK_QUEUE)
@@ -184,10 +179,6 @@ class TemporalPilotRunner(PilotRunner):
                     scenarios, started=started, wall=time.perf_counter() - t0, seed=seed
                 )
             report.mode = "temporal"
-            report.notes.append(
-                "Temporal mode: the L1 persona's sequence QA stand-in is not possible (no "
-                "activity hook), so its initial queues like the others."
-            )
             if self._stalled:
                 report.notes.append(
                     "Temporal mode: the drive loop stalled (no database change for "
@@ -201,6 +192,7 @@ class TemporalPilotRunner(PilotRunner):
             self._client = None
             conv_acts.set_conversation_context(None)
             graph_acts.set_graph_context(None)
+            starter_acts.set_starter_context(None)
             discovery_acts.reset()
             if self.engine is not None:
                 await self.engine.dispose()
@@ -208,41 +200,31 @@ class TemporalPilotRunner(PilotRunner):
     # -- sequences -----------------------------------------------------------------------------
 
     async def _start_all_sequences(self) -> None:
-        for index, persona in enumerate(self._ordered_personas()):
-            await self._start_one(persona, index)
+        """The production starter's candidates (priority tier first), one at a time so each
+        persona's policy scope applies to its own workflow start."""
+        for index, (persona, candidate) in enumerate(await self._starter_candidates()):
+            await self._start_one(persona, candidate, index)
 
-    async def _start_one(self, persona: Persona, order: int) -> None:
-        assert self.session_factory is not None and persona.email is not None
+    def _starter_context(self) -> starter_acts.StarterContext:
+        assert self.session_factory is not None
+        return starter_acts.StarterContext(
+            session_factory=self.session_factory,
+            temporal=self.gateway,
+            settings=self.settings,
+            clock=self._clock,
+        )
+
+    async def _start_one(
+        self, persona: Persona, candidate: starter_acts.StartCandidate, order: int
+    ) -> None:
         scope, saved = await self._scoped_levels(persona)
         if scope:
             await self._set_levels(scope, f"pilot scope for {persona.scenario.id}")
-        async with self.session_factory() as s:
-            repo = SequenceRepository(s)
-            token = uuid.UUID(int=self._rng.getrandbits(128), version=4)
-            row, _ = await repo.create(
-                kind=SequenceKind.INVESTOR,
-                investor_id=persona.investor_id,
-                temporal_workflow_id=f"investor-sequence:pending:{token}",
-            )
-            row.temporal_workflow_id = investor_sequence_workflow_id(str(row.id))
-            await s.commit()
-            persona.sequence_id = row.id
-            persona.workflow_id = row.temporal_workflow_id
+        started = await starter_acts.start_investor_sequence(self._starter_context(), candidate)
+        persona.sequence_id = uuid.UUID(started.sequence_id)
+        persona.workflow_id = started.workflow_id
         persona.start_order = order
-        self._sequence_persona[str(persona.sequence_id)] = persona
-        await self.gateway.start_workflow(
-            SEQUENCE_WORKFLOW,
-            [
-                InvestorSequenceInput(
-                    sequence_id=str(persona.sequence_id),
-                    investor_id=str(persona.investor_id),
-                    contact_email=persona.email,
-                    market=persona.market,
-                )
-            ],
-            workflow_id=persona.workflow_id,
-            task_queue=TASK_QUEUE,
-        )
+        self._sequence_persona[started.sequence_id] = persona
         await self._wait_parked(persona.workflow_id)
         if scope:
             await self._set_levels(saved, f"pilot scope restored after {persona.scenario.id}")

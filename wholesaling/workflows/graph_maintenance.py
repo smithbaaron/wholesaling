@@ -11,6 +11,10 @@
   persists the message, then (BO-07, WF-19) runs the inbound pipeline: A4 classify -> buy-box
   extraction -> A4 draft -> A5 QA -> policy -> send, or wait for the review queue's
   ``human_decision`` signal when the policy queued the draft. See docs/agents/conversation.md.
+  The workflow hands its own id to ``fetch_message`` (which records it as the
+  ``inbound.workflow_started`` audit event on the inbound row) and to ``draft_and_qa_reply``
+  (which stamps it on the reply draft as ``meta.temporal_workflow_id``), so the review route can
+  resolve the workflow to signal with or without a Temporal activity context.
 
 All three take a single dataclass input (milestone-1 decision 8).
 """
@@ -269,12 +273,14 @@ class GraphInboundMessageWorkflow:
     @workflow.run
     async def run(self, input: InboundMessageInput) -> InboundPipelineResult:
         self._state = "fetching"
+        workflow_id = workflow.info().workflow_id
         fetched: FetchMessageResult = await workflow.execute_activity(
             fetch_message,
             FetchMessageInput(
                 graph_id=input.graph_id,
                 subscription_id=input.subscription_id,
                 change_type=input.change_type,
+                workflow_id=workflow_id,
             ),
             start_to_close_timeout=GRAPH_ACTIVITY_TIMEOUT,
             retry_policy=GRAPH_RETRY,
@@ -342,7 +348,7 @@ class GraphInboundMessageWorkflow:
         self._state = "drafting"
         drafted: DraftReplyResult = await workflow.execute_activity(
             draft_and_qa_reply,
-            DraftReplyInput(message_id=fetched.message_id),
+            DraftReplyInput(message_id=fetched.message_id, workflow_id=workflow_id),
             start_to_close_timeout=CONVERSATION_ACTIVITY_TIMEOUT,
             retry_policy=GRAPH_RETRY,
         )

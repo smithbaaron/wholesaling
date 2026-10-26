@@ -27,6 +27,10 @@ from wholesaling.activities.outreach import (
     send_window,
     update_sequence,
 )
+from wholesaling.activities.sequence_starter import (
+    run_outreach_kickoff,
+    start_investor_sequences,
+)
 from wholesaling.activities.sheets import reconcile_sources, sync_projection
 from wholesaling.activities.zapier import send_parser_email
 
@@ -52,10 +56,12 @@ __all__ = [
     "run_a1",
     "run_a2",
     "run_m1",
+    "run_outreach_kickoff",
     "send_approved",
     "send_draft",
     "send_parser_email",
     "send_window",
+    "start_investor_sequences",
     "sync_projection",
     "update_sequence",
 ]

@@ -90,6 +90,11 @@ Deterministic steps around the model:
   takes the key so the replay guard works per box.
 - **Sensitive content** (POL-03c): `contains_sensitive` is the model's flag OR a regex scan for
   price / offer / contract / earnest / legal / attorney / `$` amounts / `150k`-style figures.
+  **By design** (pilot GAP-06): any `$` figure or `150k`-style number in a *draft* flags it
+  sensitive even when it merely restates the investor's own cap, so such an L1 reply queues for a
+  human instead of auto-sending. The conservatism is intentional - price talk is the one place
+  POL-03c wants a human - and the cost is one extra review per figure-bearing reply; the remedy
+  is draft style (acknowledge the criteria without repeating the number), not a looser regex.
 
 ## A5 QA (`A5QaAgent`, agent id A5, task kind `qa`, Sonnet)
 
@@ -143,7 +148,12 @@ Audit events: `message.classified`, `suppression.added`, `sequence.signalled`,
 
 Target: `sequences.temporal_workflow_id` of the active or paused investor sequence on the
 thread (`sequences.thread_id`), falling back to the investor's active sequence. Sent through
-`get_temporal(settings).signal(workflow_id, name, payload)` with one dataclass argument:
+`get_temporal(settings).signal(workflow_id, name, payload)` with one dataclass argument. The
+payload classes (and the signal names) are defined once in `wholesaling/signals.py` and imported
+by both `activities/conversation.py` and `workflows/investor_sequence.py`, whose handlers are
+`reply(payload: ReplySignal | None = None)` etc. (a bare signal still works; the payload is kept
+in the workflow's `status.last_signal`). Both sides sharing the module is what closed pilot
+GAP-01 (handlers that took no payload failed the workflow task on every signal).
 
 | Signal name | Payload | When |
 |---|---|---|
@@ -162,8 +172,14 @@ workflow must treat a duplicate as a no-op. Each signal is recorded once as a
 | `human_decision` | `HumanDecision(approved: bool, edited_body: str | None = None, step: int | None = None, message_id: str | None = None, actor_id: str | None = None)` — the same field names as the sender's `db.repositories.review.HumanDecision`, so Temporal's converter maps one onto the other | `approved=True` sends the queued draft (with `edited_body` as the body when it differs from the Graph draft: a second reply draft keyed `reply:<id>:edited` is created and sent, the original row gets `meta.superseded_by`); `approved=False` discards it. `step` is for sequence drafts and ignored here; `actor_id` is the operator for the audit row. The first decision wins. |
 
 The workflow id is `inbound_workflow_id(subscription_id, graph_id)` (`graph-inbound-<sha256[:32]>`).
-`draft_and_qa_reply` stores it on the draft row as `meta["temporal_workflow_id"]`, which is the
-key `ReviewRepository.resolve_workflow_id` reads for inbound-reply drafts. The review queue flips
+The workflow passes its own id into `fetch_message` (`FetchMessageInput.workflow_id`, recorded
+as the `inbound.workflow_started` audit event on the inbound row) and into `draft_and_qa_reply`
+(`DraftReplyInput.workflow_id`); the activity prefers `activity.info().workflow_id` when it runs
+inside Temporal and falls back to the argument otherwise (tests, the synthetic pilot). It stores
+the id on the draft row as `meta["temporal_workflow_id"]`, the key
+`ReviewRepository.resolve_workflow_id` reads for inbound-reply drafts; failing that the route
+looks for the `inbound.workflow_started` event on the draft or on the inbound message it answers
+(`meta["reply_to_message_id"]`). Pilot GAP-05. The review queue flips
 the row (`policy_decision`, `body`, `meta["human_decision"]`) *before* signalling; the activity
 therefore keeps its own idempotency marker in `meta["human_decision_applied"]`, compares an edit
 against `meta["graph_draft_body"]` (what is really in the Graph draft) and never revives a row

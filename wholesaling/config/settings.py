@@ -123,6 +123,10 @@ class Settings(BaseSettings):
     send_window_start_hour: int = Field(default=9, ge=0, le=23)
     send_window_end_hour: int = Field(default=17, ge=1, le=24)
     send_window_weekdays_only: bool = True
+    # WF-02 sequence starter: at most this many investor sequences are started per UTC day
+    # (``activities/sequence_starter.py``); ``config/caps.yaml`` ``outreach_kickoff_daily_cap``
+    # overrides it when set. Distinct from the POL-03a send caps on ``policies``.
+    outreach_kickoff_daily_cap: int = Field(default=50, ge=0)
 
     # Alerting
     alert_email_to: str | None = None

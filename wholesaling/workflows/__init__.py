@@ -23,6 +23,10 @@ from wholesaling.workflows.investor_sequence import (
     InvestorSequenceWorkflow,
     investor_sequence_workflow_id,
 )
+from wholesaling.workflows.outreach_kickoff import (
+    OutreachKickoffWorkflow,
+    OutreachKickoffWorkflowInput,
+)
 from wholesaling.workflows.reconciliation import (
     DailyReconciliationInput,
     DailyReconciliationWorkflow,
@@ -48,6 +52,8 @@ __all__ = [
     "InvestorSequenceInput",
     "InvestorSequenceResult",
     "InvestorSequenceWorkflow",
+    "OutreachKickoffWorkflow",
+    "OutreachKickoffWorkflowInput",
     "ScheduleSpec",
     "SheetsSyncInput",
     "SheetsSyncWorkflow",

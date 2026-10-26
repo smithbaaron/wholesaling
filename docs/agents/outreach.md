@@ -11,29 +11,38 @@ locked, A3 only fills `{first_name}`, `{market}` and `{sender_name}`.
 | Templates | `wholesaling/agents/templates/investor_outreach.py` | `INITIAL_BODY` (CPY-01 verbatim), `INITIAL_SUBJECTS` (3 INV-11 variants), `FOLLOWUP_BODIES` (3 drafts), `render`, `footer` |
 | Agent | `wholesaling/agents/a3.py` | `A3Outreach.draft(step, ...)` -> `OutreachDraft`; deterministic subject variant; `sequence_plan()` from `config/sequences.yaml` |
 | Repositories | `wholesaling/db/repositories/sequences.py`, `messages.py` | sequence rows; outbound draft rows keyed on the idempotency key; `count_sends_today`; cancel-condition lookups |
-| Activities | `wholesaling/activities/outreach.py` | `prepare_step`, `decide_and_send`, `send_approved`, `check_cancel_conditions`, `send_window`, `update_sequence` |
-| Workflow | `wholesaling/workflows/investor_sequence.py` | `InvestorSequenceWorkflow` (signals, durable sleeps, send window) |
-| Settings | `SENDER_NAME`, `SENDER_COMPANY`, `SENDER_POSTAL_ADDRESS`, `OPT_OUT_TEXT`, `SEND_WINDOW_START_HOUR`, `SEND_WINDOW_END_HOUR`, `SEND_WINDOW_WEEKDAYS_ONLY` | CAN-SPAM footer and INV-12 window (approved under PRE-02 / PRE-16) |
+| Starter | `wholesaling/activities/sequence_starter.py` | WF-02: `list_startable_investors` (priority tier first), `start_investor_sequence`, activities `start_investor_sequences(market_id, limit)` and `run_outreach_kickoff(market_id)`; `run_a2` calls it inline |
+| Activities | `wholesaling/activities/outreach.py` | `prepare_step`, `decide_and_send` (A5 review, then policy), `send_approved`, `check_cancel_conditions`, `send_window`, `update_sequence` |
+| Workflows | `wholesaling/workflows/investor_sequence.py`, `wholesaling/workflows/outreach_kickoff.py` | `InvestorSequenceWorkflow` (signals, durable sleeps, send window); `OutreachKickoffWorkflow` (daily `outreach-kickoff` schedule) |
+| Signals | `wholesaling/signals.py` | `ReplySignal`, `OptOutSignal`, `BounceSignal` shared with the inbound pipeline |
+| Settings | `SENDER_NAME`, `SENDER_COMPANY`, `SENDER_POSTAL_ADDRESS`, `OPT_OUT_TEXT`, `SEND_WINDOW_START_HOUR`, `SEND_WINDOW_END_HOUR`, `SEND_WINDOW_WEEKDAYS_ONLY`, `OUTREACH_KICKOFF_DAILY_CAP` | CAN-SPAM footer and INV-12 window (approved under PRE-02 / PRE-16); sequences started per UTC day (`config/caps.yaml` `outreach_kickoff_daily_cap` overrides) |
 
 ## Sequence of one run
 
 ```
-A2 (qualified contact)
-  |  SequenceRepository.create(kind=investor, investor_id, temporal_workflow_id)
-  |  client.start_workflow("InvestorSequenceWorkflow", InvestorSequenceInput(...),
-  |                        id=investor_sequence_workflow_id(sequence_id))
+A2 (run_a2: qualified investor, primary email found)          daily: OutreachKickoffWorkflow
+  |  sequence_starter: score >= 50, not excluded, market Active/Watch, primary email not
+  |  suppressed, no sequence on record; priority tier (>= 75) first; OUTREACH_KICKOFF_DAILY_CAP
+  |  SequenceRepository.create(kind=investor, investor_id, sequence_id=<uuid>,
+  |                            temporal_workflow_id=investor_sequence_workflow_id(sequence_id))
+  |  audit sequence.started; start_workflow("InvestorSequenceWorkflow", InvestorSequenceInput(...),
+  |                                         id=investor-sequence:{sequence_id})
+  |  (no email: audit investor.unreachable -> digest "qualified but unreachable")
   v
 InvestorSequenceWorkflow.run                       activities (all I/O)            Graph / DB
   for step in 0..3:
     |-- check_cancel_conditions(sequence_id) ----> thread inbound? suppression? paused?
     |      reply/opt_out/bounce/suppressed  ====> update_sequence(cancel) -> return
+    |      (an auto-reply flagged by A4 never counts, INV-22)
     |      paused                           ====> hold until `resume` signal
     |-- send_window(market) -----------------> markets.timezone + SEND_WINDOW_* -> seconds
     |      > 0: durable sleep until the window opens
     |-- prepare_step(sequence_id, step) ------> A3 renders template + footer
     |                                           messages row: draft=True,
     |                                           external_message_id = seq:{id}:step:{n}
-    |-- decide_and_send(message_id, step) ----> PolicyEngine.decide(action, PolicyContext)
+    |-- decide_and_send(message_id, step) ----> A5 qa_review_draft (pre-checks + model; one
+    |                                           qa_reviews row per draft, INV-17), then
+    |                                           PolicyEngine.decide(action, PolicyContext)
     |      send             ================> Graph create_draft (+conversation id) + send_draft
     |      queue_for_human  ================> row.policy_decision = queue_for_human
     |            wait for signal `human_decision(step)`
@@ -53,7 +62,7 @@ Policy actions: step 0 is `investor_initial_outreach` (POL-03a), steps 1..3 are
 | `sends_today` | `MessageRepository.count_sends_today(action, market_tz)` - sent rows since local midnight in the market's zone |
 | `initial_was_approved` | follow-ups only: the step-0 row of the same sequence has `sent_at` (it went out, auto or human-approved) |
 | `recipient_suppressed` | `suppression` table on the normalised recipient |
-| `qa_verdict` / `qa_confidence` | latest `qa_reviews` row for the message (`messages.qa_review_id` first). BO-07c writes it; absent means `None`, which the engine treats conservatively (L1 queues) |
+| `qa_verdict` / `qa_confidence` | latest `qa_reviews` row for the message (`messages.qa_review_id` first). `decide_and_send` writes it just before through `qa_review_draft` (A5: XC-07 denylist, suppression, recipient, repeated ask, cadence pre-checks, then the model; the locked CPY-01/03/04 copy passes the pre-checks); a row that already has a review (retry, operator tool) is not reviewed again |
 
 At **L0** every step queues for a human and nothing reaches Graph. At **L1** the initial sends
 only with a QA approval and under the daily cap; a follow-up sends only if the initial went out

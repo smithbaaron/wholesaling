@@ -21,8 +21,9 @@ Graph calls go through the ``activities.graph`` functions (``create_draft`` / ``
 so drafting and sending keep their own idempotency contract and their own session; this module
 never holds a DB transaction open across a Graph call.
 
-Sequence signalling contract (A3 workflow, built concurrently): signal names ``reply``,
-``opt_out``, ``bounce``; payloads ``ReplySignal``, ``OptOutSignal``, ``BounceSignal`` below;
+Sequence signalling contract (A3 workflow): signal names ``reply``, ``opt_out``, ``bounce``;
+payloads ``ReplySignal``, ``OptOutSignal``, ``BounceSignal`` from ``workflows/signals.py``
+(the one module both sides import, so the handler signatures and the payloads cannot drift);
 target workflow id = ``sequences.temporal_workflow_id`` of the active investor sequence on the
 thread (fallback: the investor's active sequence). Signals are at-least-once: an activity retry
 after a crash may repeat one, so the sequence workflow must treat duplicates as no-ops.
@@ -85,6 +86,14 @@ from wholesaling.integrations.temporal import TemporalGateway, get_temporal
 from wholesaling.logging import bind_correlation_id, clear_context, get_logger
 from wholesaling.policy.actions import PolicyAction
 from wholesaling.policy.engine import PolicyContext, PolicyEngine
+from wholesaling.signals import (
+    SIGNAL_BOUNCE,
+    SIGNAL_OPT_OUT,
+    SIGNAL_REPLY,
+    BounceSignal,
+    OptOutSignal,
+    ReplySignal,
+)
 
 log = get_logger(__name__)
 
@@ -92,10 +101,6 @@ Clock = Callable[[], datetime]
 
 SUPPRESSION_REASON_OPT_OUT = "opt_out"
 REPLY_POLICY_ACTION = PolicyAction.INVESTOR_REPLY.value
-
-SIGNAL_REPLY = "reply"
-SIGNAL_OPT_OUT = "opt_out"
-SIGNAL_BOUNCE = "bounce"
 
 
 def _utcnow() -> datetime:
@@ -111,28 +116,6 @@ def _aware(dt: datetime | None) -> datetime | None:
 def reply_idempotency_key(inbound_message_id: str) -> str:
     """``messages.external_message_id`` of the reply drafted for one inbound message."""
     return f"reply:{inbound_message_id}"
-
-
-# --------------------------------------------------------------------------------------------
-# Signal payloads (contract with the A3 InvestorSequence workflow)
-# --------------------------------------------------------------------------------------------
-
-
-@dataclass(slots=True)
-class ReplySignal:
-    message_id: str
-    classification: str
-
-
-@dataclass(slots=True)
-class OptOutSignal:
-    message_id: str
-
-
-@dataclass(slots=True)
-class BounceSignal:
-    message_id: str
-    bounced_address: str | None = None
 
 
 # --------------------------------------------------------------------------------------------
@@ -758,6 +741,11 @@ async def extract_and_upsert_buy_box(input: ExtractBuyBoxInput) -> ExtractBuyBox
 @dataclass(slots=True)
 class DraftReplyInput:
     message_id: str
+    #: The ``GraphInboundMessageWorkflow`` id that owns this inbound message, passed by the
+    #: workflow (``workflow.info().workflow_id``). Inside a Temporal activity the id is also
+    #: available from ``activity.info()``; outside one (tests, the synthetic pilot's simulator)
+    #: this is the only way the review route can find the workflow to signal (pilot GAP-05).
+    workflow_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -983,7 +971,7 @@ async def draft_and_qa_reply(input: DraftReplyInput) -> DraftReplyResult:
             )
             draft_row.policy_action = REPLY_POLICY_ACTION
             draft_row.policy_decision = decision.decision
-            workflow_id = _correlation_id()
+            workflow_id = _correlation_id() or input.workflow_id
             draft_row.meta = {
                 **(draft_row.meta or {}),
                 **draft_meta,

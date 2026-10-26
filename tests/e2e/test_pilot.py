@@ -1,9 +1,10 @@
 """BO-09 / BO-20: the synthetic investor pilot end to end on SQLite in mock mode.
 
-Runs the full pilot once per autonomy level (a few seconds each: 16 scenarios, 14 sequences,
-14 inbound messages, ~25 review-queue approvals through the real route) and asserts that every
-scenario passes, that the documented known defects are the only non-passes, and that the
-INV-23 / INV-24 / RUL-05 / POL-03l / XC-02 invariants hold.
+Runs the full pilot once per autonomy level (a few seconds each: 16 scenarios, 13 sequences
+started by the WF-02 starter, 15 inbound messages, ~27 review-queue approvals through the real
+route) and asserts that every scenario passes with no known defects left, that no signal
+payload was rejected (GAP-01), and that the INV-23 / INV-24 / RUL-05 / POL-03l / XC-02
+invariants hold.
 
 The ``temporal`` variant drives the same scenarios through the time-skipping test server. It is
 opt-in (``PILOT_TEMPORAL=1``) on top of the marker because the driver could not be executed in
@@ -22,7 +23,7 @@ from wholesaling.pilot.runner import PilotRunner
 from wholesaling.pilot.scenarios import SCENARIOS
 from wholesaling.policy.actions import AutonomyLevel, PolicyAction
 
-KNOWN_DEFECT_SCENARIOS = {"ooo_then_real_reply"}  # GAP-02; shrink this set as defects are fixed
+KNOWN_DEFECT_SCENARIOS: set[str] = set()  # GAP-02 (ooo_then_real_reply) fixed in BO-09 follow-up
 INVESTOR_ACTIONS = (
     PolicyAction.INVESTOR_INITIAL_OUTREACH,
     PolicyAction.INVESTOR_FOLLOWUP,
@@ -65,39 +66,43 @@ def test_l0_aggregates_match_the_cohort(l0_report: PilotReport) -> None:
     a = l0_report.aggregates
     assert a.markets_scored == 21 and a.markets_active == 0  # M1-11: no auto-promotion
     assert a.investors_qualified == 15 and a.investors_with_email == 14
-    assert a.sequences_started == 14 and a.sequences_completed == 1
-    assert a.sequences_cancelled == {"bounce": 1, "opt_out": 1, "reply": 10, "suppressed": 1}
-    assert a.inbound_injected == a.inbound_rows == a.inbound_audit_events == 14
+    # The WF-02 starter skips the hand-suppressed address: 13 of the 14 contactable start.
+    assert a.sequences_started == 13 and a.sequences_completed == 1
+    assert a.sequences_cancelled == {"bounce": 1, "opt_out": 1, "reply": 10}
+    # GAP-02 fixed: the out-of-office persona now gets its second touch and real reply.
+    assert a.inbound_injected == a.inbound_rows == a.inbound_audit_events == 15
     assert a.bounces == 1 and a.auto_replies == 1
     assert a.classifications == {
         "ambiguous": 1,
-        "buy_box_supplied": 6,
+        "buy_box_supplied": 7,
         "not_interested": 2,
         "not_now": 1,
         "opt_out": 1,
         "question": 2,
     }
-    assert a.buy_boxes_current == 6 and a.buy_box_versions == 7 and a.buy_box_corrections == 1
+    assert a.buy_boxes_current == 7 and a.buy_box_versions == 8 and a.buy_box_corrections == 1
     assert a.suppressions == {"bounce": 1, "manual": 1, "opt_out": 1}
-    # One auto touch (the L1 persona's QA-approved initial) and one auto reply (its clean reply).
+    assert a.touches_sent == 19 and a.touches_sent_by_step == {"0": 13, "1": 4, "2": 1, "3": 1}
+    # One auto touch (the L1 persona's A5-approved initial) and one auto reply (its clean reply).
     assert a.touches_auto_sent == 1 and a.replies_auto_sent == 1
-    assert a.reply_drafts == a.replies_sent == 9 and a.replies_blocked == 0
-    assert a.queue_depth_end == 0 and a.approvals == a.queue_items_total
+    assert a.reply_drafts == a.replies_sent == 10 and a.replies_blocked == 0
+    assert a.queue_depth_end == 0 and a.approvals == a.queue_items_total == 27
     assert a.approvals_with_edits == 0 and a.rejections == 0
-    assert a.qa_verdicts == {"approve": 10}  # 9 replies + the L1 persona's stand-in
+    # INV-17: every outgoing draft is QA'd - 19 sequence drafts + 10 replies (GAP-04 fixed).
+    assert a.qa_verdicts == {"approve": 29}
     assert a.qa_flags == {"sensitive_content": 1}
-    assert a.model_calls == a.agent_runs == 36  # XC-02
+    assert a.model_calls == a.agent_runs == 59  # XC-02
     assert a.model_calls_by_agent_task == {
-        "A4:classify": 12,
-        "A4:draft": 9,
-        "A4:extract": 6,
-        "A5:qa": 9,
+        "A4:classify": 13,
+        "A4:draft": 10,
+        "A4:extract": 7,
+        "A5:qa": 29,
     }
     assert a.policy_decisions == {
-        "investor_followup:queue_for_human": 5,
+        "investor_followup:queue_for_human": 6,
         "investor_initial_outreach:queue_for_human": 12,
         "investor_initial_outreach:send": 1,
-        "investor_reply:queue_for_human": 8,
+        "investor_reply:queue_for_human": 9,
         "investor_reply:send": 1,
     }
     assert a.workflows_started == 28 and a.workflows_failed == 0
@@ -106,8 +111,8 @@ def test_l0_aggregates_match_the_cohort(l0_report: PilotReport) -> None:
 def test_pol04_readiness_numbers_come_out_of_the_pilot(l0_report: PilotReport) -> None:
     by_action = {r["action"]: r for r in l0_report.readiness}
     assert by_action["investor_initial_outreach"]["approved_drafts"] == 12
-    assert by_action["investor_followup"]["approved_drafts"] == 5
-    assert by_action["investor_reply"]["approved_drafts"] == 8
+    assert by_action["investor_followup"]["approved_drafts"] == 6
+    assert by_action["investor_reply"]["approved_drafts"] == 9
     for action in ("investor_initial_outreach", "investor_followup", "investor_reply"):
         r = by_action[action]
         assert r["edited_drafts"] == 0 and r["qa_blocked_sent"] == 0
@@ -117,47 +122,54 @@ def test_pol04_readiness_numbers_come_out_of_the_pilot(l0_report: PilotReport) -
         assert r["criteria"]["no_qa_blocked_sent"] and r["criteria"]["no_compliance_flags"]
 
 
-def test_gap_01_is_evidenced_by_the_run(l0_report: PilotReport) -> None:
-    """Every reply/opt-out/bounce signal carried a payload the sequence handler cannot take."""
-    errors = l0_report.signal_contract_errors
-    assert len(errors) == 11 == l0_report.aggregates.signal_contract_errors
-    assert {e["signal"] for e in errors} == {"reply", "opt_out", "bounce"}
-    assert all(e["handler_params"] == 0 for e in errors)
-    assert any(g.id == "GAP-01" for g in l0_report.gaps)
+def test_signal_contract_holds_and_the_fixed_gaps_stay_closed(l0_report: PilotReport) -> None:
+    """GAP-01 fixed: every reply/opt-out/bounce payload was accepted by the sequence handler;
+    only the by-design GAP-06 note remains in the gap list; nothing was unscripted."""
+    assert l0_report.signal_contract_errors == []
+    assert l0_report.aggregates.signal_contract_errors == 0
+    assert [g.id for g in l0_report.gaps] == ["GAP-06"]
     assert l0_report.unscripted_model_calls == []
+    assert any("WF-02 starter Houston: skipped {'no_email': 1}" in n for n in l0_report.notes)
+    assert any("WF-02 starter Columbus: skipped {'suppressed': 1}" in n for n in l0_report.notes)
 
 
 def test_the_report_renders(l0_report: PilotReport) -> None:
     text = l0_report.render_text()
-    assert "PASS (with known defects)" in text and "GAP-02" in text
+    assert "PASS" in text and "with known defects" not in text and "GAP-02" not in text
     md = l0_report.render_markdown()
     assert "| pass | `priority_no_reply` |" in md
+    assert "| pass | `ooo_then_real_reply` |" in md
     back = PilotReport.from_dict(l0_report.to_dict())
-    assert back.ok and back.aggregates.sequences_started == 14
+    assert back.ok and back.aggregates.sequences_started == 13
 
 
 async def test_every_scenario_passes_at_l1_with_auto_replies() -> None:
     report = await _run(AutonomyLevel.L1)
     _assert_all_pass(report)
+    assert report.signal_contract_errors == []
     a = report.aggregates
     # At L1 the clean, confident replies send themselves; the sensitive one still queues.
-    assert a.replies_auto_sent == 8 and a.replies_sent == 9
-    assert a.policy_decisions["investor_reply:send"] == 8
+    assert a.replies_auto_sent == 9 and a.replies_sent == 10
+    assert a.policy_decisions["investor_reply:send"] == 9
     assert a.policy_decisions["investor_reply:queue_for_human"] == 1
-    # No A3 draft has a QA review, so every initial still queues at L1 (GAP-04) except the
-    # persona with the stand-in approval.
-    assert a.touches_auto_sent == 1
+    # GAP-04 fixed: A5 approves every locked template, so at L1 all 13 initials auto-send
+    # (POL-03a) and, the initial having gone out, so do the 6 follow-ups (POL-03b).
+    assert a.touches_sent == a.touches_auto_sent == 19
+    assert a.policy_decisions["investor_initial_outreach:send"] == 13
+    assert a.policy_decisions["investor_followup:send"] == 6
+    assert a.approvals == a.queue_items_total == 1  # only the price-talk reply needed a human
 
 
 async def test_without_approvals_everything_parks_and_nothing_leaks() -> None:
     report = await _run(AutonomyLevel.L0, approve_everything=False)
-    _assert_all_pass(report, known=set())  # the OOO persona never gets past its parked initial
+    _assert_all_pass(report, known=set())
     a = report.aggregates
     assert a.touches_sent == 1 and a.touches_auto_sent == 1  # only the L1 persona's initial
-    # 14 sequences - the suppressed one - the L1 persona's auto-sent initial = 12 parked
-    # initials, plus the L1 persona's queued price-talk reply.
+    # 13 sequences - the L1 persona's auto-sent initial = 12 parked initials, plus the L1
+    # persona's queued price-talk reply.
     assert a.queue_depth_end == 12 + 1 and a.workflows_parked_at_end == 12
     assert a.approvals == 0 and a.replies_auto_sent == 1
+    assert a.qa_verdicts == {"approve": 15}  # 13 initials + 2 replies, all QA'd (INV-17)
 
 
 @pytest.mark.temporal

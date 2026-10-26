@@ -6,6 +6,11 @@ timestamp in ``markets.signals["a1_running_since"]``, committed in its own short
 so a second worker sees it, and expires after ``DEFAULT_LOCK_TTL`` so a crashed run cannot
 block tomorrow's schedule. The agents themselves stay plain classes; tests call them directly.
 
+``run_a2`` closes the WF-02 loop: a qualified investor whose primary email A2 just found gets
+its ``InvestorSequenceWorkflow`` started through ``activities/sequence_starter.py`` (same rules
+and cap as the daily ``outreach-kickoff``), and a qualified investor with *no* email is recorded
+as ``investor.unreachable`` so the digest can surface it (INV-08, pilot GAP-03 / GAP-07).
+
 Dependencies (session factory, providers) come from ``get_context()`` so tests can inject an
 in-memory database and the fixture providers with ``configure()``.
 """
@@ -20,6 +25,12 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from temporalio import activity
 
+from wholesaling.activities.sequence_starter import (
+    get_starter_context,
+    is_qualified,
+    maybe_start_sequence_for_investor,
+    record_unreachable,
+)
 from wholesaling.agents.a1 import A1InvestorDiscovery
 from wholesaling.agents.a2 import A2ContactResearch
 from wholesaling.agents.m1 import M1MarketSelection
@@ -152,8 +163,16 @@ async def run_a1(market_id: str, as_of: str | None = None) -> dict[str, Any]:
 
 
 @activity.defn(name="run_a2")
-async def run_a2(investor_id: str) -> dict[str, Any]:
-    """Contact research for one investor. Returns the ``A2Result`` as JSON."""
+async def run_a2(investor_id: str, start_sequence: bool = True) -> dict[str, Any]:
+    """Contact research for one investor. Returns the ``A2Result`` as JSON plus:
+
+    - ``sequence``: ``{"started": bool, "workflow_id", "sequence_id", "skipped": reason}`` when
+      the investor is qualified and ``start_sequence`` is true (WF-02 starter; the synthetic
+      pilot passes ``False`` and starts sequences on its own simulated clock);
+    - ``unreachable``: true when the investor is qualified but A2 found no email; an
+      ``investor.unreachable`` audit event is written once per investor
+      (``unreachable_recorded`` says whether this call wrote it).
+    """
     _bind()
     ctx = get_context()
     try:
@@ -163,7 +182,33 @@ async def run_a2(investor_id: str) -> dict[str, Any]:
                 msg = f"unknown investor {investor_id}"
                 raise LookupError(msg)
             result = await A2ContactResearch().run_detailed(s, ctx.providers, investor)
-        return result.to_json()
+            qualified = is_qualified(investor)
+            unreachable = qualified and result.primary_email is None
+            recorded = False
+            if unreachable:
+                recorded = await record_unreachable(
+                    s,
+                    investor,
+                    reasons={
+                        k: v
+                        for k, v in result.to_json().items()
+                        if k not in {"investor_id", "primary_email"}
+                    },
+                )
+        out = result.to_json()
+        out["unreachable"] = unreachable
+        out["unreachable_recorded"] = recorded
+        if start_sequence and qualified and result.primary_email is not None:
+            started, skipped = await maybe_start_sequence_for_investor(
+                get_starter_context(), uuid.UUID(investor_id)
+            )
+            out["sequence"] = {
+                "started": started is not None,
+                "sequence_id": started.sequence_id if started else None,
+                "workflow_id": started.workflow_id if started else None,
+                "skipped": skipped,
+            }
+        return out
     finally:
         clear_context()
 

@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from wholesaling.db.models.buy_boxes import BuyBox, SearchProfile
 from wholesaling.db.models.deals import Match, PropertyCandidate
 from wholesaling.db.models.enums import (
+    Actor,
     AgentId,
     Channel,
     ContactChannel,
@@ -30,7 +31,7 @@ from wholesaling.db.models.investors import Contact, Investor
 from wholesaling.db.models.markets import Market
 from wholesaling.db.models.messaging import Message, Thread
 from wholesaling.db.models.offers import Offer
-from wholesaling.db.models.ops import AgentRun, QaReview
+from wholesaling.db.models.ops import AgentRun, AuditEvent, QaReview
 from wholesaling.db.models.sellers import Intake, SellerLead
 
 TZ = "America/Chicago"
@@ -202,6 +203,20 @@ async def seed_kpis(session: AsyncSession) -> KpiSeed:
         o.created_at = when
         o.updated_at = when
         session.add(o)
+
+    # Qualified-but-unreachable investors (GAP-07): 1 today, 1 three days ago, 1 twenty days ago.
+    for i, when in enumerate([at(0, 10), at(-3), at(-20)]):
+        ev = AuditEvent(
+            actor=Actor.AGENT,
+            actor_id="A2",
+            event_type="investor.unreachable",
+            entity_type="investor",
+            entity_id=uuid.uuid4(),
+            payload={"investor_id": "x", "reasons": {}},
+            idempotency_key=f"unreachable-{i}",
+        )
+        ev.created_at = when
+        session.add(ev)
 
     # Agent runs: $0.50 + $0.25 today, $1.00 three days ago, $5 twenty days ago.
     for when, cost in [(at(0), "0.5"), (at(0, 12), "0.25"), (at(-3), "1.0"), (at(-20), "5")]:

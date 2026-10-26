@@ -9,6 +9,7 @@ import inspect
 import os
 from collections.abc import AsyncIterator, Callable
 from datetime import timedelta
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -99,6 +100,8 @@ def test_conversation_activities_registered_in_worker() -> None:
 
 # -- stage routing with the Temporal primitives stubbed ------------------------------------------
 
+STUB_WORKFLOW_ID = "graph-inbound-stub"
+
 
 class StubbedTemporal:
     """Replaces ``workflow.execute_activity`` / ``wait_condition`` inside the workflow module."""
@@ -112,6 +115,9 @@ class StubbedTemporal:
         self.timed_out = False
         monkeypatch.setattr(gm.workflow, "execute_activity", self.execute_activity)
         monkeypatch.setattr(gm.workflow, "wait_condition", self.wait_condition)
+        monkeypatch.setattr(
+            gm.workflow, "info", lambda: SimpleNamespace(workflow_id=STUB_WORKFLOW_ID)
+        )
 
     def respond(self, fn: Any, response: Callable[[Any], Any]) -> None:
         self.responses[fn.__name__] = response
@@ -198,6 +204,17 @@ async def run_wf(
     stub.bind(wf)
     result = await wf.run(InboundMessageInput(graph_id="AAMk1", subscription_id="sub"))
     return result, wf
+
+
+async def test_workflow_hands_its_id_to_fetch_and_draft(stub: StubbedTemporal) -> None:
+    """GAP-05: the review route resolves an inbound workflow from the id the workflow passes
+    into ``fetch_message`` (audit event) and ``draft_and_qa_reply`` (``meta``)."""
+    await run_wf(stub)
+    by_name = dict(stub.calls)
+    assert by_name["fetch_message"].workflow_id == STUB_WORKFLOW_ID
+    assert by_name["draft_and_qa_reply"] == conv.DraftReplyInput(
+        message_id="m1", workflow_id=STUB_WORKFLOW_ID
+    )
 
 
 async def test_interested_at_l0_waits_for_human_and_sends_on_approval(

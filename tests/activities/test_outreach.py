@@ -1,9 +1,10 @@
 """Outreach activities against SQLite with the mock Graph gateway (REQUIREMENTS.md POL-03a/b,
 INV-10, INV-12, INV-23, WF-21, XC-03, XC-07).
 
-L0: everything is queued, nothing is sent. L1: QA-approved and under cap sends; cap reached
-queues; a suppressed recipient is blocked; a reply on the thread cancels. Retried activities
-never create a second draft or a second send.
+L0: everything is queued, nothing is sent. L1: the A5 review ``decide_and_send`` runs on every
+draft (INV-17; a scripted mock model approves the locked templates) lets a clean initial send
+under the cap; a rewrite verdict queues, a block or a suppressed recipient blocks; a reply on the
+thread cancels. Retried activities never create a second draft, review or send.
 """
 
 from __future__ import annotations
@@ -18,12 +19,19 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from tests.db.conftest import MakeInvestor, MakeMessage
+from wholesaling.activities import conversation as conv
 from wholesaling.activities import graph as gacts
 from wholesaling.activities import outreach as acts
+from wholesaling.agents.a4 import MODEL_OVERRIDES
+from wholesaling.agents.llm.mock import MockModelProvider
+from wholesaling.agents.llm.models import TaskKind
+from wholesaling.agents.llm.routing import ModelRouter
+from wholesaling.agents.llm.runner import AgentRunner
 from wholesaling.agents.templates import investor_outreach as t
 from wholesaling.config.settings import Settings
 from wholesaling.db.models import AuditEvent, Investor, Message, Policy, QaReview, Suppression
 from wholesaling.db.models.enums import (
+    AgentId,
     Channel,
     Direction,
     MessageClassification,
@@ -34,9 +42,11 @@ from wholesaling.db.models.enums import (
 )
 from wholesaling.db.models.markets import Market
 from wholesaling.db.models.messaging import Sequence, Thread
+from wholesaling.db.models.ops import AgentRun
 from wholesaling.db.repositories.policies import PolicyRepository
 from wholesaling.db.repositories.sequences import SequenceRepository
 from wholesaling.integrations.graph import MockGraphGateway
+from wholesaling.integrations.temporal import MockTemporalGateway
 from wholesaling.policy.actions import AutonomyLevel, PolicyAction
 
 MAILBOX = "deals@example.test"
@@ -92,6 +102,46 @@ async def ctx(
         yield context
     finally:
         gacts.set_graph_context(None)
+
+
+def qa_verdict(verdict: str = "approve", confidence: float = 0.95) -> dict[str, object]:
+    return {
+        "verdict": verdict,
+        "confidence": confidence,
+        "flags": [],
+        "rewrite_body": "Shorter." if verdict == "rewrite" else None,
+        "rationale": "scripted",
+    }
+
+
+@pytest.fixture
+def provider() -> MockModelProvider:
+    """The mock model A5 talks to; approves the locked templates unless a test re-scripts it."""
+    p = MockModelProvider()
+    p.script(AgentId.A5, TaskKind.QA, parsed=qa_verdict())
+    return p
+
+
+@pytest.fixture(autouse=True)
+async def conv_ctx(
+    ctx: gacts.GraphActivityContext,
+    provider: MockModelProvider,
+    session_factory: async_sessionmaker[AsyncSession],
+    clock: FakeClock,
+) -> AsyncIterator[conv.ConversationContext]:
+    """``decide_and_send`` borrows the model runner from the conversation context."""
+    context = conv.ConversationContext(
+        session_factory=session_factory,
+        runner=AgentRunner(provider, ModelRouter.from_settings(ctx.settings, MODEL_OVERRIDES)),
+        temporal=MockTemporalGateway(),
+        settings=ctx.settings,
+        clock=clock,
+    )
+    conv.set_conversation_context(context)
+    try:
+        yield context
+    finally:
+        conv.set_conversation_context(None)
 
 
 @pytest.fixture
@@ -217,18 +267,63 @@ async def test_prepare_step_unknown_sequence(ctx: gacts.GraphActivityContext) ->
 
 
 async def test_l0_initial_is_queued_and_nothing_is_sent(
-    ctx: gacts.GraphActivityContext, seq: Sequence, session: AsyncSession, gw: MockGraphGateway
+    ctx: gacts.GraphActivityContext,
+    seq: Sequence,
+    session: AsyncSession,
+    gw: MockGraphGateway,
+    provider: MockModelProvider,
 ) -> None:
     prepared = await _prepare(seq, 0)
     res = await _decide(prepared, 0)
     assert res.decision == "queue_for_human" and not res.sent and res.level == "L0"
-    assert res.sends_today == 0 and res.qa_verdict is None
+    # INV-17: the draft was still QA'd (A5 approved the locked template) before the decision.
+    assert res.sends_today == 0 and res.qa_verdict == "approve"
     row = await _message(session, res.message_id)
     assert row.policy_decision is PolicyDecision.QUEUE_FOR_HUMAN and row.draft
     assert row.sent_at is None and "graph_draft_id" not in row.meta
     assert gw.drafts == {} and gw.sent == []
     assert await _count(session, AuditEvent, event_type="outreach.policy_decided") == 1
+    assert await _count(session, AuditEvent, event_type="outreach.qa_reviewed") == 1
     assert await _count(session, AuditEvent, event_type="message.sent") == 0
+    review = await session.get(QaReview, row.qa_review_id)
+    assert review is not None and review.verdict is QaVerdict.APPROVE
+    assert review.agent_run_id is not None and review.model is not None
+    assert len(provider.requests) == 1 and await _count(session, AgentRun) == 1
+    run = (await session.execute(select(AgentRun))).scalar_one()
+    assert run.correlation_id == str(seq.id)
+
+
+async def test_qa_review_runs_once_across_retries(
+    ctx: gacts.GraphActivityContext,
+    seq: Sequence,
+    session: AsyncSession,
+    provider: MockModelProvider,
+) -> None:
+    prepared = await _prepare(seq, 0)
+    await _decide(prepared, 0)
+    await _decide(prepared, 0)
+    assert len(provider.requests) == 1
+    assert await _count(session, QaReview, message_id=uuid.UUID(prepared.message_id)) == 1
+
+
+async def test_qa_precheck_blocks_a_prohibited_claim_without_a_model_call(
+    ctx: gacts.GraphActivityContext,
+    seq: Sequence,
+    session: AsyncSession,
+    gw: MockGraphGateway,
+    provider: MockModelProvider,
+) -> None:
+    """XC-07: a draft asserting inventory never reaches the model, and blocks at every level."""
+    await _set_level(session, INITIAL, AutonomyLevel.L1, daily_cap=50)
+    prepared = await _prepare(seq, 0)
+    row = await _message(session, prepared.message_id)
+    row.body = row.body.replace("Are you currently", "We have inventory. Are you currently")
+    await session.commit()
+    res = await _decide(prepared, 0)
+    assert res.decision == "blocked" and res.qa_verdict == "block"
+    assert provider.requests == [] and gw.sent == []
+    review = (await session.execute(select(QaReview))).scalar_one()
+    assert review.flags == ["prohibited_claim:inventory"] and review.agent_run_id is None
 
 
 async def test_l0_followup_is_queued_even_with_qa_approval(
@@ -247,27 +342,35 @@ async def test_l0_followup_is_queued_even_with_qa_approval(
 # -- decide_and_send: L1 ---------------------------------------------------------------------------
 
 
-async def test_l1_without_qa_review_is_queued(
-    ctx: gacts.GraphActivityContext, seq: Sequence, session: AsyncSession
+async def test_l1_model_rewrite_verdict_is_queued(
+    ctx: gacts.GraphActivityContext,
+    seq: Sequence,
+    session: AsyncSession,
+    gw: MockGraphGateway,
+    provider: MockModelProvider,
 ) -> None:
     await _set_level(
         session, PolicyAction.INVESTOR_INITIAL_OUTREACH, AutonomyLevel.L1, daily_cap=50
     )
+    provider.script(AgentId.A5, TaskKind.QA, parsed=qa_verdict("rewrite", 0.7))
     res = await _decide(await _prepare(seq, 0), 0)
     assert res.decision == "queue_for_human" and "QA" in res.reason
+    assert res.qa_verdict == "rewrite" and gw.sent == []
 
 
 async def test_l1_qa_approved_under_cap_sends_through_graph(
     ctx: gacts.GraphActivityContext, seq: Sequence, session: AsyncSession, gw: MockGraphGateway
 ) -> None:
+    """The real path: prepare -> A5 review (mock model approves) -> policy -> Graph send."""
     await _set_level(
         session, PolicyAction.INVESTOR_INITIAL_OUTREACH, AutonomyLevel.L1, daily_cap=50
     )
     prepared = await _prepare(seq, 0)
-    await _qa(session, prepared.message_id, QaVerdict.APPROVE)
     res = await _decide(prepared, 0)
     assert res.decision == "send" and res.sent and res.qa_verdict == "approve"
     row = await _message(session, res.message_id)
+    assert row.qa_review_id is not None
+    assert await _count(session, QaReview, message_id=row.id) == 1
     assert row.sent_at is not None and row.draft is False
     assert row.policy_decision is PolicyDecision.SEND
     assert row.meta["graph_draft_id"] in gw.drafts and gw.drafts[row.meta["graph_draft_id"]]["sent"]
@@ -376,7 +479,8 @@ async def test_l1_followup_requires_sent_initial_and_qa(
     p0 = await _prepare(seq, 0)
     p1 = await _prepare(seq, 1)
     await _qa(session, p1.message_id, QaVerdict.APPROVE)
-    # Initial still queued (no QA) -> follow-up cannot auto-send.
+    # Initial still queued (QA asked for a rewrite) -> follow-up cannot auto-send.
+    await _qa(session, p0.message_id, QaVerdict.REWRITE)
     assert (await _decide(p0, 0)).decision == "queue_for_human"
     res = await _decide(p1, 1)
     assert res.decision == "queue_for_human" and "initial" in res.reason

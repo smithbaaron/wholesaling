@@ -156,11 +156,10 @@ def test_opt_out_persona_expects_two_touches_and_suppression() -> None:
 def test_l1_persona_auto_sends_only_the_clean_reply() -> None:
     s = SCENARIOS_BY_ID["l1_auto_send_then_price_talk"]
     e = s.expected(AutonomyLevel.L0)
+    # The scoped L1 initial auto-sends on A5's approval of the locked template (POL-03a).
     assert e.auto_touches == 1 and e.touches_sent == 1
     assert e.replies_auto_sent == 1 and e.replies_sent == 2 and e.queued_items == 1
-    # Without the QA stand-in (Temporal mode) the initial queues like every other.
-    e2 = s.expected(AutonomyLevel.L0, qa_standin=False)
-    assert e2.auto_touches == 0 and e2.queued_items == 2
+    assert e.starter_skip_reason is None and not e.unreachable_recorded
     # A scope never lowers a global L2.
     assert s.level_for(PolicyAction.INVESTOR_REPLY, AutonomyLevel.L2) is AutonomyLevel.L2
     assert s.level_for(PolicyAction.INVESTOR_REPLY, AutonomyLevel.L0) is AutonomyLevel.L1
@@ -172,8 +171,22 @@ def test_global_l1_auto_sends_confident_non_sensitive_replies() -> None:
     maria = SCENARIOS_BY_ID["prospect_interested_full_buy_box"]
     assert maria.expected(AutonomyLevel.L0).replies_auto_sent == 0
     assert maria.expected(AutonomyLevel.L1).replies_auto_sent == 1
-    # At L1 the initial still queues (no QA review exists for A3 drafts: GAP-04).
-    assert maria.expected(AutonomyLevel.L1).auto_touches == 0
+    # At L1 every sequence draft is A5-reviewed, so the initial auto-sends too (POL-03a).
+    assert maria.expected(AutonomyLevel.L1).auto_touches == 1
+    assert maria.expected(AutonomyLevel.L0).auto_touches == 0
+
+
+def test_global_l1_follow_ups_auto_send_once_the_initial_went_out() -> None:
+    """POL-03b: a QA-approved follow-up sends itself at L1 when the initial went out."""
+    quiet = SCENARIOS_BY_ID["priority_no_reply"]
+    l0 = quiet.expected(AutonomyLevel.L0)
+    assert (l0.touches_sent, l0.auto_touches, l0.queued_items) == (4, 0, 4)
+    l1 = quiet.expected(AutonomyLevel.L1)
+    assert (l1.touches_sent, l1.auto_touches, l1.queued_items) == (4, 4, 0)
+    # With no operator at L0 the initial parks; at L1 nothing needs an operator.
+    parked = quiet.expected(AutonomyLevel.L0, approve_everything=False)
+    assert parked.sequence_status == "active" and parked.touches_sent == 0
+    assert quiet.expected(AutonomyLevel.L1, approve_everything=False).sequence_status == "completed"
 
 
 def test_reply_expectation_auto_send_rule() -> None:
@@ -196,17 +209,22 @@ def test_reply_expectation_auto_send_rule() -> None:
     assert sensitive.auto_sends_at(AutonomyLevel.L2)
 
 
-def test_no_contact_and_suppressed_personas_never_send() -> None:
+def test_no_contact_and_suppressed_personas_never_start() -> None:
+    """The WF-02 starter skips an investor without an email (and records it unreachable,
+    GAP-07) and one whose address is suppressed (POL-03l)."""
     e = SCENARIOS_BY_ID["no_contact_found"].expected(AutonomyLevel.L0)
     assert not e.sequence_started and e.touches_sent == 0
+    assert e.starter_skip_reason == "no_email" and e.unreachable_recorded
     e = SCENARIOS_BY_ID["suppressed_before_start"].expected(AutonomyLevel.L2)
-    assert e.sequence_started and e.cancel_reason == "suppressed" and e.touches_sent == 0
-    assert e.suppression_reason == "manual"
+    assert not e.sequence_started and e.touches_sent == 0 and e.model_calls == 0
+    assert e.suppression_reason == "manual" and e.starter_skip_reason == "suppressed"
 
 
-def test_ooo_scenario_documents_the_known_defect_it_trips() -> None:
+def test_ooo_scenario_is_no_longer_a_known_defect() -> None:
+    """GAP-02 fixed: the out-of-office never cancels, the real reply after touch 2 does."""
     s = SCENARIOS_BY_ID["ooo_then_real_reply"]
-    assert "GAP-02" in s.known_defects
-    assert "touches_sent" in s.known_defects["GAP-02"]
+    assert s.known_defects == {}
+    assert not any(sc.known_defects for sc in SCENARIOS_BY_ID.values())
     e = s.expected(AutonomyLevel.L0)
     assert e.touches_sent == 2 and e.inbound_rows == 2  # what INV-22 requires
+    assert e.classifications == ("ambiguous", "buy_box_supplied") and e.cancel_reason == "reply"

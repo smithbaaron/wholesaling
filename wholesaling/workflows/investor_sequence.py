@@ -24,11 +24,15 @@ Signal contract (the review-queue API codes against this; see docs/agents/outrea
                                     message_id:str|None - sent when an operator approves /
                                     edits / rejects the queued draft for ``step`` (or for the
                                     ``messages.id`` the workflow is currently waiting on)
-    reply()      a substantive inbound reply arrived     -> cancel remaining steps ("reply")
-    opt_out()    recipient opted out                      -> cancel ("opt_out")
-    bounce()     delivery failed                          -> cancel ("bounce")
+    reply(ReplySignal | None)     a substantive inbound reply arrived -> cancel ("reply")
+    opt_out(OptOutSignal | None)  recipient opted out                 -> cancel ("opt_out")
+    bounce(BounceSignal | None)   delivery failed                     -> cancel ("bounce")
     pause()      hold before the next send (no cancel)
     resume()     release a pause
+
+The three cancelling signals take the payload dataclasses from ``workflows/signals.py`` (the
+same module ``activities/conversation.py`` sends from) and tolerate no payload at all. The
+payload is kept in the status (``last_signal``) for operators and tests; duplicates are no-ops.
 
 Query ``status`` -> ``InvestorSequenceStatus`` as a dict.
 
@@ -46,6 +50,15 @@ from typing import Any
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+
+from wholesaling.signals import (
+    SIGNAL_BOUNCE,
+    SIGNAL_OPT_OUT,
+    SIGNAL_REPLY,
+    BounceSignal,
+    OptOutSignal,
+    ReplySignal,
+)
 
 with workflow.unsafe.imports_passed_through():
     from wholesaling.activities.outreach import (
@@ -143,6 +156,7 @@ class InvestorSequenceStatus:
     pending_human_step: int | None
     pending_message_id: str | None
     unmatched_decisions: int
+    last_signal: dict[str, Any] | None = None
 
 
 @workflow.defn(name=WORKFLOW_NAME)
@@ -160,6 +174,7 @@ class InvestorSequenceWorkflow:
         self._timezone = "America/Chicago"
         self._pending_message_id: str | None = None
         self._unmatched_decisions = 0
+        self._last_signal: dict[str, Any] | None = None
 
     # -- run -------------------------------------------------------------------------------------
 
@@ -360,16 +375,16 @@ class InvestorSequenceWorkflow:
         self._human[step] = decision
 
     @workflow.signal
-    def reply(self) -> None:
-        self._cancel("reply")
+    def reply(self, payload: ReplySignal | None = None) -> None:
+        self._cancel(SIGNAL_REPLY, payload)
 
     @workflow.signal
-    def opt_out(self) -> None:
-        self._cancel("opt_out")
+    def opt_out(self, payload: OptOutSignal | None = None) -> None:
+        self._cancel(SIGNAL_OPT_OUT, payload)
 
     @workflow.signal
-    def bounce(self) -> None:
-        self._cancel("bounce")
+    def bounce(self, payload: BounceSignal | None = None) -> None:
+        self._cancel(SIGNAL_BOUNCE, payload)
 
     @workflow.signal
     def pause(self) -> None:
@@ -379,9 +394,15 @@ class InvestorSequenceWorkflow:
     def resume(self) -> None:
         self._paused = False
 
-    def _cancel(self, reason: str) -> None:
-        if self._cancel_reason is None:
-            self._cancel_reason = reason
+    def _cancel(self, reason: str, payload: Any = None) -> None:
+        """First cancelling signal wins; later ones (at-least-once delivery) are no-ops."""
+        if self._cancel_reason is not None:
+            return
+        self._cancel_reason = reason
+        record: dict[str, Any] = {"signal": reason}
+        if payload is not None:
+            record.update(asdict(payload))
+        self._last_signal = record
 
     # -- query -----------------------------------------------------------------------------------
 
@@ -405,6 +426,7 @@ class InvestorSequenceWorkflow:
                 pending_human_step=pending,
                 pending_message_id=self._pending_message_id if pending is not None else None,
                 unmatched_decisions=self._unmatched_decisions,
+                last_signal=dict(self._last_signal) if self._last_signal else None,
             )
         )
 
@@ -415,10 +437,13 @@ __all__ = [
     "DEFAULT_INTERVALS_DAYS",
     "WORKFLOW_ID_PREFIX",
     "WORKFLOW_NAME",
+    "BounceSignal",
     "HumanDecision",
     "InvestorSequenceInput",
     "InvestorSequenceResult",
     "InvestorSequenceStatus",
     "InvestorSequenceWorkflow",
+    "OptOutSignal",
+    "ReplySignal",
     "investor_sequence_workflow_id",
 ]
