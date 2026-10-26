@@ -1,9 +1,11 @@
-"""``wholesaling-pilot``: run the synthetic investor pilot and write its report.
+"""``wholesaling-pilot``: run the synthetic investor or seller pilot and write its report.
 
     wholesaling-pilot run [--market Houston --market Columbus] [--level L0|L1|L2]
                           [--temporal] [--out report.md] [--json report.json]
                           [--db sqlite+aiosqlite:///pilot.db] [--no-approve] [--strict]
                           [--seed N] [--quiet]
+    wholesaling-pilot seller [--level L0|L1] [--out report.md] [--json report.json]
+                             [--db URL] [--no-approve] [--strict] [--seed N] [--quiet]
 
 Exit status: 0 when every scenario passes (scenarios that fail only on a documented known
 defect count as passing unless ``--strict``), 1 when any scenario fails or an invariant breaks,
@@ -20,6 +22,7 @@ from pathlib import Path
 
 from wholesaling.pilot.report import PilotReport
 from wholesaling.pilot.scenarios import PILOT_MARKETS
+from wholesaling.pilot.seller_report import SellerPilotReport
 from wholesaling.policy.actions import AutonomyLevel, PolicyAction
 
 INVESTOR_LEVEL_ACTIONS = (
@@ -62,6 +65,25 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--strict", action="store_true", help="known defects fail the run too")
     run.add_argument("--seed", type=int, default=20261027)
     run.add_argument("--quiet", action="store_true", help="print only the verdict line")
+
+    seller = sub.add_parser("seller", help="run the synthetic seller pilot (BO-14)")
+    seller.add_argument(
+        "--level",
+        choices=[AutonomyLevel.L0.value, AutonomyLevel.L1.value],
+        default=AutonomyLevel.L0.value,
+        help="autonomy level for the five seller actions (default L0)",
+    )
+    seller.add_argument("--out", type=Path, help="write the Markdown report here")
+    seller.add_argument("--json", type=Path, dest="json_out", help="write the JSON report here")
+    seller.add_argument("--db", help="database URL (default TEST_DATABASE_URL or SQLite in memory)")
+    seller.add_argument(
+        "--no-approve",
+        action="store_true",
+        help="the operator approves nothing and clicks nothing on /deals",
+    )
+    seller.add_argument("--strict", action="store_true", help="known defects fail the run too")
+    seller.add_argument("--seed", type=int, default=20261027)
+    seller.add_argument("--quiet", action="store_true", help="print only the verdict line")
     return parser
 
 
@@ -70,6 +92,17 @@ def level_overrides(level: str) -> dict[PolicyAction, AutonomyLevel]:
     if lvl is AutonomyLevel.L0:
         return {}
     return dict.fromkeys(INVESTOR_LEVEL_ACTIONS, lvl)
+
+
+async def _run_seller(args: argparse.Namespace) -> SellerPilotReport:
+    from wholesaling.pilot.seller_runner import SellerPilotRunner
+
+    runner = SellerPilotRunner(database_url=args.db)
+    return await runner.run(
+        level=AutonomyLevel(args.level),
+        approve_everything=not args.no_approve,
+        seed=args.seed,
+    )
 
 
 async def _run(args: argparse.Namespace) -> PilotReport:
@@ -97,8 +130,12 @@ async def _run(args: argparse.Namespace) -> PilotReport:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    report: PilotReport | SellerPilotReport
     try:
-        report = asyncio.run(_run(args))
+        if args.command == "seller":
+            report = asyncio.run(_run_seller(args))
+        else:
+            report = asyncio.run(_run(args))
     except RuntimeError as exc:
         if "Temporal" in str(exc):
             print(f"error: {exc}", file=sys.stderr)  # noqa: T201 - CLI output

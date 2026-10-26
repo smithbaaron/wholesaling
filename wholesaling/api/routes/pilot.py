@@ -76,12 +76,74 @@ async def pilot_report(
     return PlainTextResponse(report.render_text())
 
 
+# -- BO-14: the seller pilot's report (appended; the investor route above is unchanged) ---------
+
+SELLER_REPORT_EVENT = "seller_pilot.completed"
+SELLER_REPORT_PATH_ENV = "SELLER_PILOT_REPORT_PATH"
+DEFAULT_SELLER_REPORT_PATH = "seller-pilot-report.json"
+
+
+def seller_report_path() -> Path:
+    return Path(os.environ.get(SELLER_REPORT_PATH_ENV, DEFAULT_SELLER_REPORT_PATH))
+
+
+async def latest_seller_report_payload(session: Any) -> dict[str, Any] | None:
+    stmt = (
+        select(AuditEvent)
+        .where(AuditEvent.event_type == SELLER_REPORT_EVENT)
+        .order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc())
+        .limit(1)
+    )
+    event = (await session.execute(stmt)).scalars().first()
+    if event is not None and event.payload:
+        return dict(event.payload)
+    path = seller_report_path()
+    if path.is_file():
+        data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+        return data
+    return None
+
+
+@router.get("/pilot/seller-report")
+async def seller_pilot_report(
+    operator: Operator,
+    session: SessionDep,
+    format: Annotated[Format, Query()] = "json",
+) -> Response:
+    """The latest synthetic seller pilot report (BO-14), like ``/pilot/report``: the newest
+    ``seller_pilot.completed`` audit event in this database, else the JSON file at
+    ``SELLER_PILOT_REPORT_PATH`` (default ``seller-pilot-report.json``)."""
+    from wholesaling.pilot.seller_report import SellerPilotReport
+
+    payload = await latest_seller_report_payload(session)
+    if payload is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "no seller pilot report: run `wholesaling-pilot seller --json "
+                "seller-pilot-report.json` against this database or set SELLER_PILOT_REPORT_PATH"
+            ),
+        )
+    if format == "json":
+        return JSONResponse(payload)
+    report = SellerPilotReport.from_dict(payload)
+    if format == "markdown":
+        return PlainTextResponse(report.render_markdown(), media_type="text/markdown")
+    return PlainTextResponse(report.render_text())
+
+
 __all__ = [
     "DEFAULT_REPORT_PATH",
+    "DEFAULT_SELLER_REPORT_PATH",
     "PILOT_REPORT_EVENT",
     "PILOT_REPORT_PATH_ENV",
+    "SELLER_REPORT_EVENT",
+    "SELLER_REPORT_PATH_ENV",
     "latest_report_payload",
+    "latest_seller_report_payload",
     "pilot_report",
     "report_path",
     "router",
+    "seller_pilot_report",
+    "seller_report_path",
 ]

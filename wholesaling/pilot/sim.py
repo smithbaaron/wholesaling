@@ -481,14 +481,188 @@ def _convert_payload(value: Any, hint: Any) -> Any:
     return target(**{k: v for k, v in data.items() if k in names})
 
 
+# --------------------------------------------------------------------------------------------
+# Seller-side support (BO-14), appended so the investor pilot above is untouched
+# --------------------------------------------------------------------------------------------
+#
+# The seller pilot drives five more workflow classes (seller sequence, seller inbound, offer,
+# negotiation, disposition) plus the investor inbound workflow's child hand-off to the seller
+# pipeline. Three additions make that possible without changing the investor behaviour:
+#
+# - ``SELLER_WORKFLOW_MODULES`` / ``patched_workflow_modules_for``: the same ``workflow`` swap
+#   for an arbitrary set of workflow modules (``patched_workflow_modules`` stays as it was);
+# - ``SellerWorkflowModuleShim.execute_child_workflow``: ``GraphInboundMessageWorkflow`` hands a
+#   seller thread to ``SellerInboundWorkflow`` as a child; the shim starts the child (payload
+#   converted by field name, like Temporal's converter) and parks the parent until it ends;
+# - ``SellerWorkflowSimulator.pre_observers``: hooks that run *before* an activity executes, so
+#   the pilot can inject a V6 drift comp or a V5 recompute bug for exactly one computation.
+#
+# ``DeferredStartSimGateway`` starts workflows at the next scheduler turn instead of inline,
+# the way a Temporal server dispatches asynchronously; the API routes that start a workflow
+# before committing their own transaction (``/deals/{id}/signed``) then read committed rows.
+
+from wholesaling.workflows import disposition as wf_disposition  # noqa: E402
+from wholesaling.workflows import negotiation as wf_negotiation  # noqa: E402
+from wholesaling.workflows import offer as wf_offer  # noqa: E402
+from wholesaling.workflows import seller_inbound as wf_seller_inbound  # noqa: E402
+from wholesaling.workflows import seller_sequence as wf_seller_sequence  # noqa: E402
+
+ActivityPreObserver = Callable[[str, str, Any], Awaitable[None]]  # (workflow id, name, arg)
+
+SELLER_WORKFLOW_MODULES: tuple[types.ModuleType, ...] = (
+    ws,
+    gm,
+    wf_seller_sequence,
+    wf_seller_inbound,
+    wf_offer,
+    wf_negotiation,
+    wf_disposition,
+)
+
+WORKFLOW_CLASSES.update(
+    {
+        wf_seller_sequence.WORKFLOW_NAME: wf_seller_sequence.SellerSequenceWorkflow,
+        wf_seller_sequence.REFRESH_WORKFLOW_NAME: wf_seller_sequence.SellerListRefreshWorkflow,
+        wf_seller_inbound.WORKFLOW_NAME: wf_seller_inbound.SellerInboundWorkflow,
+        wf_offer.WORKFLOW_NAME: wf_offer.OfferWorkflow,
+        wf_negotiation.WORKFLOW_NAME: wf_negotiation.NegotiationWorkflow,
+        wf_disposition.WORKFLOW_NAME: wf_disposition.DispositionWorkflow,
+    }
+)
+
+
+def convert_run_args(instance: Any, args: Sequence[Any]) -> list[Any]:
+    """Map start payloads onto the ``run`` method's annotated dataclasses by field name (what
+    Temporal's default converter does when the caller declares its own copy of the input
+    dataclass, e.g. ``activities.seller.OfferWorkflowInput`` -> ``workflows.offer``'s)."""
+    run = getattr(instance, "run", None)
+    if run is None:
+        return list(args)
+    hints = _type_hints(run)
+    params = [
+        p
+        for p in inspect.signature(run).parameters.values()
+        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+    ]
+    return [
+        _convert_payload(arg, hints.get(param.name))
+        for arg, param in zip(args, params, strict=False)
+    ]
+
+
+class SellerWorkflowSimulator(WorkflowSimulator):
+    """``WorkflowSimulator`` plus pre-activity observers and child workflows."""
+
+    def __init__(self, start: datetime, *, horizon: timedelta = timedelta(days=60)) -> None:
+        super().__init__(start, horizon=horizon)
+        self.pre_observers: list[ActivityPreObserver] = []
+        self.child_starts: list[tuple[str, str]] = []  # (parent id, child id)
+
+    async def execute_activity(self, fn: Any, arg: Any, **kwargs: Any) -> Any:
+        wf = _current_workflow.get() or "?"
+        for observer in list(self.pre_observers):
+            await observer(wf, fn.__name__, arg)
+        return await super().execute_activity(fn, arg, **kwargs)
+
+    async def execute_child_workflow(self, workflow: str, arg: Any, *, workflow_id: str) -> Any:
+        """Start ``workflow`` as a child (or join the one already running under
+        ``workflow_id``), park the parent until the child finishes, return its result."""
+        cls = WORKFLOW_CLASSES.get(workflow)
+        if cls is None:
+            msg = f"the pilot simulator has no workflow named {workflow!r}"
+            raise LookupError(msg)
+        parent = _current_workflow.get() or "?"
+        self.child_starts.append((parent, workflow_id))
+        if workflow_id not in self.instances:
+            instance = cls()
+            converted = convert_run_args(instance, [arg])
+            self.start_workflow(workflow_id, instance, instance.run(*converted))
+        # The parent parks like any other waiter until the child closes (the scheduler wakes
+        # it before concluding, and a child parked forever shows up in ``parked``).
+        await self.wait_condition(lambda: self.is_done(workflow_id))
+        if workflow_id in self.errors:
+            raise self.errors[workflow_id]
+        return self.results.get(workflow_id)
+
+
+class SellerWorkflowModuleShim(WorkflowModuleShim):
+    """The shim plus ``execute_child_workflow`` (``GraphInboundMessageWorkflow`` -> seller)."""
+
+    def __init__(self, sim: SellerWorkflowSimulator) -> None:
+        super().__init__(sim)
+        self._seller_sim = sim
+
+    async def execute_child_workflow(self, workflow: str, arg: Any, *, id: str, **_: Any) -> Any:
+        return await self._seller_sim.execute_child_workflow(workflow, arg, workflow_id=id)
+
+
+@contextlib.asynccontextmanager
+async def patched_workflow_modules_for(
+    sim: SellerWorkflowSimulator, modules: Sequence[types.ModuleType] = SELLER_WORKFLOW_MODULES
+) -> AsyncIterator[SellerWorkflowModuleShim]:
+    """``patched_workflow_modules`` for any set of workflow modules, with child workflows."""
+    shim = SellerWorkflowModuleShim(sim)
+    saved = [(mod, mod.workflow) for mod in modules]
+    for mod, _ in saved:
+        setattr(mod, "workflow", shim)  # noqa: B010 - deliberate module-attribute swap
+    try:
+        yield shim
+    finally:
+        for mod, original in saved:
+            setattr(mod, "workflow", original)  # noqa: B010
+
+
+class DeferredStartSimGateway(SimTemporalGateway):
+    """``SimTemporalGateway`` whose ``start_workflow`` runs the workflow at the next scheduler
+    turn (same simulated instant) rather than inline, like a real Temporal dispatch; start
+    payloads are converted onto the workflow's input dataclass by field name."""
+
+    async def start_workflow(
+        self,
+        workflow: str,
+        args: Sequence[Any],
+        *,
+        workflow_id: str,
+        task_queue: str | None = None,
+    ) -> WorkflowHandleInfo:
+        info = await MockTemporalGateway.start_workflow(
+            self, workflow, args, workflow_id=workflow_id, task_queue=task_queue
+        )
+        cls = WORKFLOW_CLASSES.get(workflow)
+        if cls is None:
+            msg = f"the pilot simulator has no workflow named {workflow!r}"
+            raise LookupError(msg)
+        if workflow_id in self._sim.instances:
+            return info
+        instance = cls()
+        converted = convert_run_args(instance, args)
+        # Reserve the id now (a second start before the turn is a no-op, like Temporal).
+        self._sim.instances[workflow_id] = instance
+
+        async def _start() -> None:
+            del self._sim.instances[workflow_id]
+            self._sim.start_workflow(workflow_id, instance, instance.run(*converted))
+            await self._sim.settle()
+
+        self._sim.schedule_in(timedelta(0), _start, label=f"start:{workflow_id}")
+        return info
+
+
 __all__ = [
+    "SELLER_WORKFLOW_MODULES",
     "WORKFLOW_CLASSES",
     "ActivityCall",
     "ActivityObserver",
+    "ActivityPreObserver",
+    "DeferredStartSimGateway",
+    "SellerWorkflowModuleShim",
+    "SellerWorkflowSimulator",
     "SignalContractError",
     "SimTemporalGateway",
     "WorkflowModuleShim",
     "WorkflowSimulator",
     "WorkflowStuck",
+    "convert_run_args",
     "patched_workflow_modules",
+    "patched_workflow_modules_for",
 ]

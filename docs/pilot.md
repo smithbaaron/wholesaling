@@ -223,3 +223,190 @@ unscripted message as `interested` (first enum member) with confidence 0, so the
 catch-all that answers `ambiguous` / empty extraction / `approve` at 0.5 and lists every such call
 in the report (none in the baseline run); costs are the mock provider's token counts priced at the
 routed model's rate (`agent_runs.cost_usd`, NUMERIC(12,6)), not a vendor invoice.
+
+---
+
+# Synthetic seller pilot (build order BO-14)
+
+REQUIREMENTS.md BO-14 (mirror of the investor pilot through S1 -> S2 -> S3 -> inbound seller
+replies / web form -> S4 -> A7 -> S5 -> human contract -> S6), BO-20, SEL-01..SEL-12, A7-12..17,
+POL-03d..k. Code: `wholesaling/pilot/seller_scenarios.py`, `seller_runner.py`,
+`seller_report.py`, the `seller` subcommand in `pilot/cli.py`, the seller additions at the end
+of `pilot/sim.py`, `GET /pilot/seller-report` in `api/routes/pilot.py`; tests in
+`tests/pilot/test_seller_*.py` and `tests/e2e/test_seller_pilot.py`.
+
+## What it is
+
+Seventeen named scenarios drive sixteen seller leads through the whole seller loop **in mock
+mode**, on a fresh SQLite database, with no Temporal server, no mailbox, no model, no DocuSign:
+
+```
+M1 (21 seed markets) -> the operator makes Houston Active (the PRE-17 approval; Columbus stays
+Watch) -> A1 + A2 on Houston (the buyers S6 will blast; three get an operator-entered buy box)
+-> S1 + S2 through activities.seller.refresh_market (the weekly refresh, start_sequences=False;
+Columbus is refused "market_not_active") -> three hand-entered leads (GAP-S01) -> the production
+starter start_seller_sequence, one lead every two simulated minutes -> SellerSequenceWorkflow
+(A5 QA on every step, PolicyEngine(seller_outreach_email)) -> scripted seller emails injected
+into the mock Graph gateway and announced twice through POST /webhooks/graph ->
+GraphInboundMessageWorkflow routes the seller thread to its child SellerInboundWorkflow (S4
+classify -> intake merge -> parcel check -> complete | S4 reply -> A5 QA -> policy) -> homeowners
+POST the real /sell form (multipart, photos to the mock blob store) -> OfferWorkflow (A7 steps
+1-10 with V1..V6, A5 QA, PolicyEngine(offer_send)) -> NegotiationWorkflow (reminders 2/5/10,
+expiry 14, re-engagement 60/90) with the seller's accept / counter and the operator's override
+-> the operator's clicks on the REAL /deals routes (PSA + DocuSign draft envelope, mark signed
+with deadlines, earnest money, buyer response, select buyer, deposit, closed / dead) ->
+DispositionWorkflow (S6 blast, T-3d/T-1d/T-0 deadline alerts, dead-deal follow-up) -> collect
+-> grade -> SellerPilotReport
+```
+
+Every piece in that chain is the production code. The pilot adds:
+
+1. the simulator (`pilot/sim.py`, appended for BO-14): `SellerWorkflowSimulator` (pre-activity
+   observers, `execute_child_workflow` for the Graph -> seller hand-off, the parent parks as a
+   waiter until the child closes), `patched_workflow_modules_for` over the seven workflow
+   modules, `DeferredStartSimGateway` (a workflow starts at the next scheduler turn, as a real
+   Temporal dispatch would, so routes that start a workflow before committing read committed
+   rows) and `convert_run_args` (start payloads mapped onto the workflow's input dataclass by
+   field name, as Temporal's converter does). The investor `patched_workflow_modules` and
+   `SimTemporalGateway` are untouched; `tests/pilot/test_sim.py` still passes.
+2. `SellerScriptBook`: scripted S4 classify / extract / draft and A5 QA outputs per scripted
+   seller message, A5 approvals for the locked templates (four sequence steps, the offer, the
+   S5 reminder and re-engagement, the S6 blast), an empty A7 comp-audit verdict (the
+   deterministic pre-filters carry V3). Any other model call is listed as unscripted (none in
+   the baseline).
+3. Four work-arounds it reports as gaps: property-fixture parcels registered with the mock deeds
+   provider and A7 fixture subjects aliased under the leads' addresses (GAP-S02), three seeded
+   leads (GAP-S01), the S5 router it plays for post-offer replies (GAP-S04), and two engine-level
+   injections for one computation each - three drift comps before V6 (`inject_comp`, as the
+   engine tests do) and a swapped `engine.compute_mao` so V5 catches a mismatch (GAP-S07).
+
+## The scenarios
+
+| id | persona (source, A7 fixture) | path | proves |
+|---|---|---|---|
+| `s1_partial_intake_to_dead_deal` | Dolores Ramirez (S1, clean subject aliased) | reply 26 h after touch 1 with motivation + condition; S4 asks timeline + co-owners (L0 queued, L1 auto); second reply completes; offer $88,000 (ARV $240,145, Medium: no photos); seller accepts by email; operator: PSA, signed, earnest requested then deposited; S6 blasts 3 buyers; inspection passes; operator marks the deal dead | SEL-04/06/07, A7-01, SEL-11, SEL-10, WF-06, POL-03i/j (release reminder raised) |
+| `s1_full_reply_counter_inside_room` | Thomas Nguyen (S1, tier-2 subject aliased; DNC-listed phone) | everything in one reply; offer $76,000 / MAO $82,104 (Low: Medium less photos -> gate fails, human sends); counter at 60% of the room: L0 human override accepts, L1 S5 auto-accepts; `contract.requested` | SEL-03, CMP-02, SEL-09, POL-03h; **GAP-S09** |
+| `s1_counter_above_mao_human_declines` | Gerald Pike (S1, clean aliased) | everything in one reply; offer $92,000 auto at L1; counter at 160% of the room -> human; operator declines; lead requeued 90 d later | SEL-09, POL-03h, POL-06 |
+| `s1_offer_expires_then_reengage` | Linda & Mark Okafor (S1, sqft-gap subject aliased) | V1 third source agrees with the county (`adjusted`); offer $81,000; no answer: reminders 2/5/10, expiry 14, re-engagement 60/90 | A7-12, SEL-09, WF-05; **GAP-S05** at L0 |
+| `seed_no_reply` | Quiet Owner (seeded) | 4 touches at 3/7/14 d, completed | SEL-04, WF-03 |
+| `seed_hostile_opt_out` | Hostile Owner (seeded) | "take me off your list" 1 h after touch 1 | opt_out suppression, lead suppressed, cancel `opt_out`, no draft (POL-03l) |
+| `seed_asks_for_a_number` | Price Asker (seeded) | "what's your offer?" at 2 h (draft **blocked**: cadence), again at 30 h: S4 asks two fields, `asks_offer` -> sensitive -> human at every level | POL-06, POL-09, SEL-07; **GAP-S08** |
+| `web_form_full_to_close` | Pat Doe (web form, clean subject, 1 photo) | complete form -> offer $88,500 (High) -> human sends (gate `no_open_flags`) -> accepts -> PSA -> signed -> blast 3 -> buyer response, select buyer ($10,000 fee, $5,000 deposit), earnest deposited, deposit, closed with the realised fee | SEL-12, SEL-08, A7-09, SEL-11, SEL-10, BB-11; **GAP-S03**, **GAP-S11** |
+| `web_form_three_way_conflict` | Lee Conflict (61 Elm Loop) | V1 no majority -> escalate -> Low -> gates fail -> human | A7-12, A7-04, A7-08 |
+| `web_form_dirty_comps` | Sam Cedar (930 Cedar Bend) | V3 removes 4 comps, V4 Medium -> Heavy + foundation contingency; offer $40,500 < 35% ARV -> human | A7-14, A7-15, A7-08 |
+| `web_form_avm_gap` | Ana Birch (2201 Birch St, Light, 2 photos) | V2 re-runs at tier 2 (7.4% gap), offer $149,500 | A7-13; **GAP-S03** |
+| `web_form_pre_send_drift` | Will Willow (717 Willow Way) | three $170/sqft sales injected before V6: ARV +5.7%, MAO/offer/V5/draft recomputed ($101,000), second V6 passes | A7-17, A7-16; **GAP-S03** |
+| `web_form_v5_mismatch` | Vera Five (clean aliased) | `compute_mao` returns offer + $500 for this computation: V5 fails, offer blocked, `a7.recompute_mismatch` alert, nothing sent | A7-16 |
+| `web_form_photos_missing` | Noah Photo (clean aliased, no photo) | same facts as Pat Doe without photos: High -> Medium | SEL-06; **GAP-S03** |
+| `web_form_probate_without_authority` | Pat Probate (clean aliased) | "inherited ... still in probate" with no authority: flag -> gate fails -> human | A7-08 |
+| `web_form_same_parcel_merges` | Dolores Ramirez again (web form at day 45) | the form merges into the S1 lead (two distress rows were already one lead): one lead per address, one intake, `lead_created=False` | SEL-02, SEL-12 |
+| `market_not_active_refused` | cohort | `refresh_market` on Columbus (Watch) | `refused_reason=market_not_active`, nothing queued (SEL-01, M1-11) |
+
+Each persona declares its expected end state (`SellerScenario.expected(level)`): lead status and
+parcel verification, sequence status / cancel reason / touches (auto), inbound rows and
+classifications, S4 replies (drafted / sent / auto / sensitive / queued / blocked), intake
+completion and photo link, offer status / ARV confidence / failed gates / open flags /
+verification passes and per-pass results / sent / auto, counters (within room, decision, who
+accepted), negotiation outcome, reminders and re-engagements (timeline and rows actually sent),
+requeue, contract status, blast recipients (auto), buyer, deposit, realised fee, dead reason,
+earnest-release reminder, suppression, lead dedupe. `known_defects` names the checks a documented
+gap makes fail; a scenario failing only on those is `known_defect`.
+
+## Running it
+
+```bash
+uv run wholesaling-pilot seller                     # L0, Houston, SQLite in memory
+uv run wholesaling-pilot seller --level L1 --out seller.md --json seller-pilot-report.json
+uv run wholesaling-pilot seller --no-approve        # the operator approves and clicks nothing
+uv run wholesaling-pilot seller --db sqlite+aiosqlite:///seller.db
+```
+
+Exit status 0 when every scenario passes or fails only on a documented gap (`--strict` fails
+those too; today every run is `PASS (with known defects)`), 1 on a failure or a broken
+invariant. A run takes about seven seconds of wall time for 93 simulated days.
+`GET /pilot/seller-report?format=json|text|markdown` (operator auth) serves the newest report:
+the `seller_pilot.completed` audit event when the API shares the pilot's database, else the JSON
+file at `SELLER_PILOT_REPORT_PATH` (default `seller-pilot-report.json`).
+
+## Reading the report
+
+- **Invariants**: A7-18 every offer has V1..V5 rows and every sent offer a V6 row; A7-16 V5
+  matches unless injected; POL-03i/j no automated actor wrote a contract / earnest-money event and
+  every signed contract names a human signer; SEL-05 identity + postal address + opt-out on every
+  sent seller message, and (known defect GAP-S12) the canonical TX disclosure; POL-03e / RUL-06
+  no SMS row and no SMS policy decision; INV-24 one inbound row per injected email though the
+  webhook was called twice; SEL-12 one `web_form` row per submission; RUL-05 one mock send per
+  sent row; XC-02 one `agent_runs` row per model call; SEL-02 one lead per normalised address;
+  POL-03l no send to a suppressed seller; no workflow crashed or was left waiting without a
+  timeout. An invariant whose `note` starts with `known defect` is listed but does not fail the
+  run (`ok_strict` does).
+- **Aggregates**: S1 counts and refusals, leads by source / status, S2 trace / DNC, sequences,
+  touches, inbound and form rows, classifications, S4 replies, intakes, offers by status and
+  confidence, failed-gate histogram, verification rows by `pass:result`, offers sent / auto /
+  queued / blocked, counters, accepted / declined / expired, reminders, contracts, blasts, buyers,
+  deposits, realised fees, suppressions, queue and approvals (and approval **failures**), QA,
+  policy decisions by `action:decision`, model calls, SMS rows, workflows.
+- **POL-04 readiness** for the five seller actions over the whole run (the window is widened
+  from 30 days to the run's length because the audit rows carry wall-clock timestamps).
+- **Gaps**: GAP-S01..S12 below, each with the run's evidence.
+
+Baseline L0 run (seed 20261027, 93 simulated days): 1 Active market; S1 pulled 11 records / 10
+parcels, created 5 leads (rejected: no_value 1, not_residential_1_4 2, outside_deal_band 1,
+suppressed 1), Columbus refused; S2 traced 5, reachable 4, unreachable 1 (Boyd estate), DNC-listed
+2; 16 leads (5 distress, 3 seeded, 8 web form); 7 sequences (1 completed; cancelled reply 5,
+opt_out 1); 10 touches, 0 auto; 12 emails injected = 12 rows, 9 forms = 9 rows; classifications
+interested 20, opt_out 1; S4 replies 3 drafted / 2 sent / 2 sensitive / 1 blocked; 12 intakes
+complete, 2 photo links; 12 offers (accepted 3, declined 1, expired 7, blocked 1), confidence
+High 4 / Medium 6 / Low 2; gates failed no_open_flags 8, arv_confidence 2, min_pct_of_arv 1;
+3 offers with every gate passed; verification rows V1 pass 10 / adjusted 1 / escalate 1, V2 pass
+11 / adjusted 2, V3 pass 12 / adjusted 1, V4 pass 11 / adjusted 1, V5 pass 12 / fail 1, V6 pass
+21 / adjusted 1; 11 offers sent (0 auto, 11 queued), 1 blocked; 2 counters (both to a human);
+reminders 0 sent / 21 queued, re-engagements 0 (GAP-S05), 35 failed approvals; 1 lead requeued;
+3 `contract.requested`, 2 contracts signed, 1 closed ($10,000 realised), 1 dead; 6 blast drafts,
+6 sent (0 auto); 1 buyer, 1 deposit; 64 queue items, 29 approvals; 104 model calls = 104
+`agent_runs` (A5 65, A7 comp audit 13, S4 classify 12 / extract 11 / draft 3), $0.1757 at mock
+pricing; 65 workflows, 0 failed, 0 parked; 0 signal contract errors. At L1 the same run
+auto-sends all 10 touches, 1 of 2 intake replies (the price question stays human), 3 of 11 offers
+(the three with every gate passed), S5 auto-accepts the in-room counter, sends 3 reminders and 2
+re-engagements for that offer and auto-sends all 6 blasts; 9 approvals, 30 failed.
+
+## What it does not prove
+
+Everything in the investor section applies (no mailbox, no model, no Temporal server, no
+production fixtures). In addition: no real property data (the A7 fixtures are seven hand-made
+subjects; the pilot aliases them under the leads' addresses, GAP-S02); DocuSign is the mock
+(envelopes are "created" drafts, nothing is signed); the blob store is in memory; the S5 router
+for post-offer replies does not exist yet, so the acceptance / counter emails go through the
+inbound pipeline (which does nothing with them) and the pilot signals `NegotiationWorkflow`
+itself (GAP-S04); A5's judgement of the seller templates, the offer, the reminders and the blast
+is scripted (approve 0.93-0.96) - whether the real model approves them is a BO-13 eval question.
+
+## Gaps found (BO-14)
+
+All **OPEN**; the pilot works around each one inside `wholesaling/pilot/` and reports it. The
+`known_defects` entries in the catalogue and `tests/e2e/test_seller_pilot.py` name the ones
+that make a check fail today, so fixing a gap flips a check and the lists must be updated.
+
+| id | severity | where | behaviour vs expected | evidence / work-around |
+|---|---|---|---|---|
+| GAP-S01 | low | `integrations/data/fixtures/{distress,skiptrace}.json` | The Houston distress fixture yields four reachable owners; the seller pilot needs seven sequence personas (no-reply, opt-out, price-asker on top). Expected: enough fixture rows. | three leads seeded by hand (`source=pilot_seed`), started through the production starter |
+| GAP-S02 | medium | `fixtures/properties.json` vs `distress.json` / `deeds.json`; `mock.MockDeedRecordsProvider.resolve_parcel`, `property.MockPropertyDataProvider` | The seven A7 fixture subjects are unknown to the deeds mock, so a web form on them never parcel-verifies (S4 keeps asking for the address, no offer); no S1 distress address has a property fixture, so A7 blocks every S1 lead with "property could not be resolved". Expected: one coherent mock world. | `register_parcel` adds the fixture parcels to the deeds mock; `alias_subject` copies a fixture subject under the lead's address (parcel ids suffixed, comps re-zipped) |
+| GAP-S03 | medium | `api/routes/sell.py` (`TEXT_FIELDS`), `activities/seller.py::seller_intake`, `a7/gates.py` | The form has no co-owner / liens / HOA question and S4 asks optional fields only while a required one is missing, so a complete form intake reaches A7 with `co_owners_unknown=True` -> `co_owner_missing` -> gate `no_open_flags` fails -> every form-sourced offer queues for a human even at L1. Expected: the form or S4 asks the SEL-06 optional questions once. | 8 of 12 offers fail `no_open_flags`; `web_form_full_to_close`, `web_form_avm_gap`, `web_form_pre_send_drift`, `web_form_photos_missing` are `known_defect` |
+| GAP-S04 | high | `activities/seller.py` (`seller_classify_inbound` / `seller_intake`) vs `workflows/negotiation.py` | A seller's reply after the offer (accept, counter, decline) runs through `SellerInboundWorkflow` as an intake message; the intake is complete, so nothing is drafted and `NegotiationWorkflow` never hears of it - no code path signals `counter` / `accept` / `decline` from inbound mail. Expected: post-offer replies classified and signalled to `negotiation:{offer_id}` (SEL-09). | the pilot injects the email (to show the no-op) and then signals S5 itself (`_play_negotiation_move`) |
+| GAP-S05 | high | `workflows/negotiation.py` (no `human_decision` signal) vs `activities/offers.py::send_negotiation_message` | At L0 the S5 reminders and re-engagements queue with `meta.temporal_workflow_id=negotiation:{offer_id}`; the review route resolves it and signals `human_decision`, which the workflow does not define -> 502 (`has no signal 'human_decision'`), later `already completed`; no reminder can ever be approved and the queue fills with 35 unresolvable items per run. Expected: the workflow accepts `human_decision` (send via a `send_approved` activity) or a child workflow sends them. | `s1_offer_expires_then_reengage` is `known_defect` at L0 (`reminders_delivered` 0 of 3); `approval_failures` 35 |
+| GAP-S06 | medium | `api/routes/deals.py::mark_signed` | The route starts `DispositionWorkflow` before committing the signed status; under a real Temporal server the worker's `load_contract` can read `sent_for_signature` and finish `not_signed` (no blast, no alerts). Expected: commit first, then start (as `/sell` does). | by code inspection; not reproducible on SQLite (shared connection) and the pilot gateway dispatches at the next turn |
+| GAP-S07 | low | `agents/a7/engine.py` (`run_v5`, `compute_mao`) | No seam to exercise a V5 mismatch. Expected: an injection hook. | the pilot swaps `engine.compute_mao` for one computation, like `tests/agents/a7/test_engine.py` |
+| GAP-S08 | high | `agents/a5.py::run_prechecks` (`cadence_violation`) <- `activities/seller.py::seller_intake` | A seller who answers within 24 h of our note gets no reply: the pre-check flags the S4 reply because *our* last outbound on the thread is < 24 h old, the BLOCK verdict becomes a blocked draft, the inbound workflow ends, nothing retries later; the sequence was already cancelled on `reply`, so the lead goes dark. The same rule applies to A4 investor replies (the investor pilot scripted >= 26 h delays). Expected: an answer to a newer inbound is not a cadence violation, or the send is deferred rather than blocked. | `seed_asks_for_a_number` is `known_defect` (`s4_blocked` 1); the first draft of every other persona would have been blocked with a sub-24 h reply, so the catalogue scripts 26-30 h |
+| GAP-S09 | medium | `agents/a7/gates.py::derive_open_flags` / `_NEGATIVE` | `co_owners` text such as "sole owner" or "just me" is read as unidentified co-owners (only no/none/n/a count as negative), so `co_owner_missing` fires for a seller who owns alone. Expected: sole-ownership statements clear the flag (or S4 normalises them). | `s1_full_reply_counter_inside_room` is `known_defect`; the other S1 personas script `co_owners="none"` |
+| GAP-S10 | low | `api/routes/sell.py` (`datetime.now`), `api/routes/deals.py::_now` | The form stamps `received_at` / `submitted_at` and the deals routes stamp buyer responses and defaults with the wall clock, not an injectable clock, so form rows sit out of order on a simulated timeline and every date must be passed explicitly. Expected: routes read the clock the activities read. | pilot passes every /deals date |
+| GAP-S11 | low | `db/repositories/contracts.py` (`mark_signed` / `mark_closed` / `mark_dead`) | Nothing moves the seller lead past `offered`: signing, closing and death leave `seller_leads.status` unchanged although the enum has `under_contract` / `closed` / `dead` and `handoff_to_s5` / `requeue_seller` guard on them. Expected: `mark_signed -> under_contract`, `mark_closed -> closed`, `mark_dead -> dead`. | `web_form_full_to_close` is `known_defect` (`lead_status` offered) |
+| GAP-S12 | medium | `agents/a7/templates.py::TX_DISCLOSURE` vs `agents/templates/seller_outreach.py::TX_EQUITABLE_INTEREST_DISCLOSURE` | The offer, reminder and re-engagement emails append A7's own disclosure wording, not the SEL-05 block counsel reviews (PRE-16) and `missing_compliance_blocks` checks; two different disclosures reach sellers from one mailbox. Expected: one disclosure constant rendered by `seller_outreach`. | invariant "canonical TX disclosure" fails for every sent offer / reminder / re-engagement, listed as a known-defect invariant |
+
+Observations that are not defects: the first seller touch goes out at 11:00 Chicago although the
+pilot starts at 10:00 (the seller send window opens an hour later than the investor one); V2 on
+the AVM-gap subject records two `adjusted` rows (the tier-2 re-run and the 7.4% result) rather
+than `adjusted, pass`; the engine prices with the simulated day, so ARVs move by a few dollars
+with the day an offer is computed (`$240,116` to `$240,153` for the clean subject) and L0/L1
+runs differ by the hour of approval; `NegotiationResult.reminders_sent` lists the days a
+reminder was *attempted* (a queued reminder counts), which is why the report also counts rows
+actually sent.
