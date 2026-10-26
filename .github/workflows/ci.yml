@@ -76,9 +76,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            echo "CI pytest failed on ${GITHUB_SHA} (${GITHUB_RUN_ID}). Last 300 lines:"
+            echo "CI pytest failed on ${GITHUB_SHA} (${GITHUB_RUN_ID})."
             echo '```'
-            tail -n 300 pytest.log
+            awk '/^=+ (FAILURES|ERRORS) =+/,/^=+ (short test summary|warnings summary)/' pytest.log | head -c 50000
+            echo
+            echo '--- summary ---'
+            grep -E '^(FAILED|ERROR) ' pytest.log | head -n 50
+            tail -n 3 pytest.log
             echo '```'
           } > comment.md
           gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -F body=@comment.md || true
@@ -138,9 +142,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            echo "CI (Postgres job) pytest failed on ${GITHUB_SHA} (${GITHUB_RUN_ID}). Last 300 lines:"
+            echo "CI (Postgres job) pytest failed on ${GITHUB_SHA} (${GITHUB_RUN_ID})."
             echo '```'
-            tail -n 300 pytest.log
+            awk '/^=+ (FAILURES|ERRORS) =+/,/^=+ (short test summary|warnings summary)/' pytest.log | head -c 50000
+            echo
+            echo '--- summary ---'
+            grep -E '^(FAILED|ERROR) ' pytest.log | head -n 50
+            tail -n 3 pytest.log
             echo '```'
           } > comment.md
           gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -F body=@comment.md || true
