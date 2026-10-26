@@ -10,7 +10,8 @@
       "expected": "classification, is_auto_reply, quoted_text_stripped, reconnect_date, stripped_text_contains / stripped_text_excludes, model_called",
       "extraction": "optional: {current: {key: criteria}, model: EXTRACT_SCHEMA output, expected: per-box fields, unknowns, corrections}"
     },
-    "version": 1
+    "version": 2,
+    "bo13": "v2 (BO-13): extraction.expected now lists every stated field (markets, cities, neighborhoods, condition, strategy, closing_timeline) so the eval harness can synthesise the model output from expected alone; every value the agent tests assert is unchanged. The harness reads this file through wholesaling.evals.cases (format inbound_replies)."
   },
   "cases": [
     {
@@ -39,7 +40,7 @@
       "extraction": {
         "current": {},
         "model": {"buy_boxes": [{"buy_box_key": "default", "geography": {"markets": ["Houston"], "cities": null, "zips": ["77009", "77008", "77007"], "neighborhoods": null}, "asset_types": ["sfr"], "price_min": null, "price_max": 250000, "condition": "light to medium rehab", "strategy": null, "financing": "cash", "closing_timeline": "14 days", "other_criteria": [], "corrections": [], "raw_text": "We buy SFR in 77009, 77008 and 77007, up to 250k, cash, light to medium rehab, can close in 14 days."}], "rationale": "one box"},
-        "expected": {"buy_boxes": [{"buy_box_key": "default", "price_max": "250000", "asset_types": ["sfr"], "zips": ["77009", "77008", "77007"], "financing": "cash", "unknowns": [], "corrections": []}]}
+        "expected": {"buy_boxes": [{"buy_box_key": "default", "price_max": "250000", "asset_types": ["sfr"], "zips": ["77009", "77008", "77007"], "markets": ["Houston"], "financing": "cash", "condition": "light to medium rehab", "closing_timeline": "14 days", "unknowns": [], "corrections": []}]}
       }
     },
     {
@@ -56,8 +57,8 @@
           {"buy_box_key": "dallas-rentals", "geography": {"markets": ["Dallas"], "cities": null, "zips": null, "neighborhoods": null}, "asset_types": ["duplex", "triplex"], "price_min": null, "price_max": 500000, "condition": "any", "strategy": "buy_and_hold", "financing": "conventional", "closing_timeline": null, "other_criteria": [], "corrections": [], "raw_text": "hold small multifamily (duplex/triplex) in Dallas up to 500k, any condition, conventional financing"}
         ], "rationale": "two boxes"},
         "expected": {"buy_boxes": [
-          {"buy_box_key": "houston-flips", "price_min": "150000", "price_max": "300000", "unknowns": ["financing", "closing_timeline"]},
-          {"buy_box_key": "dallas-rentals", "price_max": "500000", "asset_types": ["duplex", "triplex"], "unknowns": ["closing_timeline"]}
+          {"buy_box_key": "houston-flips", "price_min": "150000", "price_max": "300000", "asset_types": ["sfr"], "markets": ["Houston"], "neighborhoods": ["inside the loop"], "condition": "heavy rehab ok", "strategy": "flip", "unknowns": ["financing", "closing_timeline"]},
+          {"buy_box_key": "dallas-rentals", "price_max": "500000", "asset_types": ["duplex", "triplex"], "markets": ["Dallas"], "condition": "any", "strategy": "buy_and_hold", "financing": "conventional", "unknowns": ["closing_timeline"]}
         ]}
       }
     },
@@ -71,7 +72,7 @@
       "extraction": {
         "current": {},
         "model": {"buy_boxes": [{"buy_box_key": "default", "geography": {"markets": null, "cities": ["Spring", "Humble"], "zips": null, "neighborhoods": ["north side"]}, "asset_types": null, "price_min": null, "price_max": 200000, "condition": null, "strategy": null, "financing": null, "closing_timeline": null, "other_criteria": [], "corrections": [], "raw_text": "Mostly the north side, Spring and Humble. Nothing over 200k."}], "rationale": "partial"},
-        "expected": {"buy_boxes": [{"buy_box_key": "default", "price_max": "200000", "unknowns": ["asset_types", "condition", "financing", "closing_timeline"], "corrections": []}]}
+        "expected": {"buy_boxes": [{"buy_box_key": "default", "price_max": "200000", "cities": ["Spring", "Humble"], "neighborhoods": ["north side"], "unknowns": ["asset_types", "condition", "financing", "closing_timeline"], "corrections": []}]}
       }
     },
     {

@@ -1,0 +1,1610 @@
+{
+  "_meta": {
+    "format": "unified",
+    "version": 1,
+    "purpose": "A5 QA golden set (REQUIREMENTS.md INV-17, INV-22, XC-07, POL-03c). Each case is a draft plus its context; expected carries the verdict, the flags and whether the model was reached. Pre-check cases (prohibited claims, opt-out, wrong recipient, repeated ask, cadence) must block without a model call; model-path cases use `model_flags` to script what the model adds in scripted mode and `flags` / `flags_include` for the final flag set.",
+    "input": {
+      "draft": "{to, subject, body, asks_for, contains_sensitive}",
+      "thread": "[{direction in|out, body, hours_ago?, from?}]",
+      "facts": "object",
+      "current_buy_box": "object|null",
+      "thread_participant": "email|null",
+      "recipient_suppressed": "bool",
+      "last_outbound_asks_for": "[field]",
+      "last_outbound_hours_ago": "number|null",
+      "scheduled_sequence": "bool"
+    },
+    "expected": {
+      "verdict": "approve|block|rewrite",
+      "flags": "exact final flag set",
+      "flags_include": "required subset (optional)",
+      "model_called": "bool",
+      "model_flags": "flags the scripted model returns",
+      "min_confidence": "optional",
+      "has_rewrite_body": "optional",
+      "rewrite_body": "scripted rewrite (optional)",
+      "rewrite_body_excludes": "optional"
+    }
+  },
+  "cases": [
+    {
+      "id": "prohibited_inventory",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. We have inventory in 77009 that fits; which condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "prohibited_claim:inventory"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "prohibited_claim",
+        "precheck"
+      ],
+      "notes": "XC-07 'inventory' denylist"
+    },
+    {
+      "id": "prohibited_under_contract",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. We have two houses under contract in 77008 right now. What condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "prohibited_claim:under_contract"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "prohibited_claim",
+        "precheck"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "prohibited_exclusive",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. You get exclusive first look at everything we source in 77009.",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "prohibited_claim:exclusive"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "prohibited_claim",
+        "precheck"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "prohibited_guaranteed",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Our deals come with guaranteed equity; what condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "prohibited_claim:guaranteed"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "prohibited_claim",
+        "precheck"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "prohibited_properties_available",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Here are the deals we have this week - interested in any?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "prohibited_claim:properties_available"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "prohibited_claim",
+        "precheck"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "prohibited_in_subject_two_terms",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "Exclusive inventory for you",
+          "body": "Thanks Jane. Which condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "prohibited_claim:inventory",
+          "prohibited_claim:exclusive"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "prohibited_claim",
+        "precheck"
+      ],
+      "notes": "subject line is checked too; both terms flagged once each"
+    },
+    {
+      "id": "prohibited_body_and_subject_deduped",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "Inventory update",
+          "body": "Our inventory is deep in 77009.",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "prohibited_claim:inventory"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "prohibited_claim",
+        "precheck"
+      ],
+      "notes": "the same term in subject and body yields one flag"
+    },
+    {
+      "id": "opt_out_suppressed_recipient",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "recipient_suppressed": true,
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Which condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "opt_out_violation"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "opt_out",
+        "precheck"
+      ],
+      "notes": "POL-03l: a clean draft to a suppressed address never reaches the model"
+    },
+    {
+      "id": "opt_out_plus_prohibited_claim",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "recipient_suppressed": true,
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "We have inventory for you.",
+          "asks_for": [],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "prohibited_claim:inventory",
+          "opt_out_violation"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "opt_out",
+        "prohibited_claim",
+        "precheck"
+      ],
+      "notes": "every failing pre-check is reported, not just the first"
+    },
+    {
+      "id": "wrong_recipient_other_address",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "someone.else@other.test"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Which condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "wrong_recipient"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "wrong_recipient",
+        "precheck"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "wrong_recipient_empty_to",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Which condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "wrong_recipient"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "wrong_recipient",
+        "precheck"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "recipient_case_insensitive_ok",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "Jane@ACME.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Which condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "approve",
+        "flags": [],
+        "model_called": true
+      },
+      "tags": [
+        "wrong_recipient",
+        "clean"
+      ],
+      "notes": "normalised compare: the same mailbox in a different case is the participant"
+    },
+    {
+      "id": "recipient_among_cc_ok",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "partner@acme.com",
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Which condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "approve",
+        "flags": [],
+        "model_called": true
+      },
+      "tags": [
+        "wrong_recipient",
+        "clean"
+      ],
+      "notes": "the participant anywhere in `to` passes"
+    },
+    {
+      "id": "repeated_ask_same_fields",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "last_outbound_asks_for": [
+          "condition"
+        ],
+        "last_outbound_hours_ago": 72,
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. What condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "repeated_request"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "repeated_request",
+        "precheck"
+      ],
+      "notes": "INV-14: never re-ask what the last email asked"
+    },
+    {
+      "id": "repeated_ask_order_and_case_insensitive",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "last_outbound_asks_for": [
+          "Condition",
+          "financing"
+        ],
+        "last_outbound_hours_ago": 72,
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Cash or financed, and what condition?",
+          "asks_for": [
+            "financing",
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "repeated_request"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "repeated_request",
+        "precheck"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "different_ask_than_last_is_fine",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "last_outbound_asks_for": [
+          "condition"
+        ],
+        "last_outbound_hours_ago": 72,
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. How quickly can you close once you like a deal?",
+          "asks_for": [
+            "closing_timeline"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "approve",
+        "flags": [],
+        "model_called": true
+      },
+      "tags": [
+        "repeated_request",
+        "clean"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "repeated_ask_waived_for_scheduled_sequence",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "scheduled_sequence": true,
+        "last_outbound_asks_for": [
+          "condition"
+        ],
+        "last_outbound_hours_ago": 2,
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Hi Jane, following up: what condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "approve",
+        "flags": [],
+        "model_called": true
+      },
+      "tags": [
+        "repeated_request",
+        "cadence",
+        "sequence"
+      ],
+      "notes": "A3 sequence steps own cadence and repeat the ask by design"
+    },
+    {
+      "id": "cadence_within_24h",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "last_outbound_hours_ago": 6,
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Which condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "cadence_violation"
+        ],
+        "model_called": false
+      },
+      "tags": [
+        "cadence",
+        "precheck"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cadence_exactly_24h_ok",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "last_outbound_hours_ago": 24,
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Which condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "approve",
+        "flags": [],
+        "model_called": true
+      },
+      "tags": [
+        "cadence",
+        "clean"
+      ],
+      "notes": "24 h is the boundary; the gap must be strictly less than 24 h to block"
+    },
+    {
+      "id": "sensitive_price_talk_flagged",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Deals around $150,000 in 77009 come up often; what condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": true
+        }
+      },
+      "expected": {
+        "verdict": "approve",
+        "flags": [
+          "sensitive_content"
+        ],
+        "model_called": true,
+        "model_flags": []
+      },
+      "tags": [
+        "sensitive",
+        "model"
+      ],
+      "notes": "POL-03c: A4 flagged the figure; A5 carries sensitive_content so the policy engine queues it"
+    },
+    {
+      "id": "sensitive_contract_question_rewrite",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes. What does your assignment contract look like and what earnest money do you need?",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Our assignment contract is standard and earnest money is usually 1%.",
+          "asks_for": [],
+          "contains_sensitive": true
+        }
+      },
+      "expected": {
+        "verdict": "rewrite",
+        "flags": [
+          "sensitive_content"
+        ],
+        "flags_include": [
+          "sensitive_content"
+        ],
+        "model_called": true,
+        "has_rewrite_body": true,
+        "rewrite_body": "Thanks Jane. Contract and earnest-money terms are something a colleague will walk you through directly; I will have them reach out. Meanwhile, which property types and condition do you take on?",
+        "rewrite_body_excludes": "1%"
+      },
+      "tags": [
+        "sensitive",
+        "rewrite",
+        "model"
+      ],
+      "notes": "contract / earnest talk is deferred to a human (MARKETING_RULES 6)"
+    },
+    {
+      "id": "rewrite_without_body_is_flagged",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane!! We will send you stuff ASAP, promise!!!",
+          "asks_for": [],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "rewrite",
+        "flags": [
+          "tone",
+          "rewrite_without_body"
+        ],
+        "model_flags": [
+          "tone"
+        ],
+        "model_called": true,
+        "has_rewrite_body": false
+      },
+      "tags": [
+        "rewrite",
+        "model"
+      ],
+      "notes": "a rewrite verdict with no body gets rewrite_without_body so a human looks"
+    },
+    {
+      "id": "model_block_invented_deal",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. I have a 3/2 at 1204 Oak Hollow Dr for you at a great number - want it?",
+          "asks_for": [],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "block",
+        "flags": [
+          "invented_deal"
+        ],
+        "model_flags": [
+          "invented_deal"
+        ],
+        "model_called": true,
+        "min_confidence": 0.8
+      },
+      "tags": [
+        "model",
+        "invented"
+      ],
+      "notes": "no address appears in the facts: the model must block it"
+    },
+    {
+      "id": "clean_approve_asks_missing_field",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Cash buyers in 77009 and 77008 are exactly who we want to work with. Which condition do you take on - light cosmetic only, or full rehabs too?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "approve",
+        "flags": [],
+        "model_called": true,
+        "min_confidence": 0.85
+      },
+      "tags": [
+        "clean",
+        "model"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "clean_approve_not_now_acknowledgement",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Not right now, circle back after January 15.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": "jane@acme.com",
+        "draft": {
+          "to": [
+            "jane@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Understood, Jane - I will reach back out after January 15. Thanks for letting me know.",
+          "asks_for": [],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "approve",
+        "flags": [],
+        "model_called": true
+      },
+      "tags": [
+        "clean",
+        "model",
+        "not_now"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "clean_approve_no_participant_known",
+      "agent": "A5",
+      "task": "qa",
+      "input": {
+        "thread": [
+          {
+            "direction": "out",
+            "body": "Hi Jane, are you currently purchasing properties in Houston?",
+            "hours_ago": 72
+          },
+          {
+            "direction": "in",
+            "body": "Yes, SFR in 77009 and 77008, cash buyer, up to 250k.",
+            "hours_ago": 1
+          }
+        ],
+        "facts": {
+          "investor_name": "Acme Holdings LLC",
+          "market": "Houston, TX"
+        },
+        "current_buy_box": {
+          "geography": {
+            "zips": [
+              "77009",
+              "77008"
+            ]
+          },
+          "asset_types": [
+            "sfr"
+          ],
+          "price_max": "250000",
+          "financing": "cash"
+        },
+        "thread_participant": null,
+        "draft": {
+          "to": [
+            "unknown@acme.com"
+          ],
+          "subject": "RE: Off-market deals in Houston",
+          "body": "Thanks Jane. Which condition do you take on?",
+          "asks_for": [
+            "condition"
+          ],
+          "contains_sensitive": false
+        }
+      },
+      "expected": {
+        "verdict": "approve",
+        "flags": [],
+        "model_called": true
+      },
+      "tags": [
+        "clean",
+        "wrong_recipient"
+      ],
+      "notes": "without a known participant the recipient check cannot run and does not block"
+    }
+  ]
+}

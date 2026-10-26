@@ -1,0 +1,31 @@
+{
+  "agents": {
+    "A4": {
+      "failing_ids": [],
+      "pass_rate": 1.0,
+      "passed": 34,
+      "total": 34
+    },
+    "A5": {
+      "failing_ids": [],
+      "pass_rate": 1.0,
+      "passed": 26,
+      "total": 26
+    },
+    "A7": {
+      "failing_ids": [],
+      "pass_rate": 1.0,
+      "passed": 17,
+      "total": 17
+    },
+    "S4": {
+      "failing_ids": [],
+      "pass_rate": 1.0,
+      "passed": 18,
+      "total": 18
+    }
+  },
+  "generated_at": "2026-10-26T03:34:48.278666+00:00",
+  "mode": "mock",
+  "version": 1
+}

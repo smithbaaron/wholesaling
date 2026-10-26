@@ -1,0 +1,2383 @@
+{
+  "_meta": {
+    "format": "unified",
+    "version": 1,
+    "purpose": "A7 V3 comp audit golden set (REQUIREMENTS.md A7-14). Each case is a subject plus a comp set; expected.prefilter is what the deterministic pre-filters must flag per comp, expected.flagged the final (pre-filter + model) flags per comp, expected.model_flags what the scripted model adds in mock mode. The model may add flags and never removes a pre-filter flag.",
+    "input": {
+      "subject": "object (address, sqft, ...)",
+      "as_of": "ISO date",
+      "comps": "[SoldComp.to_json()]"
+    },
+    "expected": {
+      "prefilter": "{comp_id: [flags]}",
+      "flagged": "{comp_id: [flags]} (comps absent are clean)",
+      "model_flags": "{comp_id: [flags]} scripted"
+    }
+  },
+  "cases": [
+    {
+      "id": "clean_seven_tier1",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "216000",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "222000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "228000",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "234000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C6",
+            "parcel_id": "P-C6",
+            "address": "C6 Comp St",
+            "postal_code": "77055",
+            "sale_price": "240000",
+            "sale_date": "2026-07-22",
+            "sqft": 1500,
+            "distance_miles": "0.7",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C6 Sellerson",
+            "buyer_name": "C6 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C7",
+            "parcel_id": "P-C7",
+            "address": "C7 Comp St",
+            "postal_code": "77055",
+            "sale_price": "246000",
+            "sale_date": "2026-07-07",
+            "sqft": 1500,
+            "distance_miles": "0.8",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C7 Sellerson",
+            "buyer_name": "C7 Buyerman",
+            "source": "provider"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "C6": [],
+          "C7": []
+        },
+        "flagged": {}
+      },
+      "tags": [
+        "clean"
+      ],
+      "notes": "the worked-example style set: every comp kept"
+    },
+    {
+      "id": "fixture_dirty_four_flags",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "DC1",
+            "parcel_id": "P-DC1",
+            "address": "DC1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195750",
+            "sale_date": "2026-09-25",
+            "sqft": 1450,
+            "distance_miles": "0.25",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2010,
+            "lot_sqft": 7000,
+            "seller_name": "DC1 Sellerson",
+            "buyer_name": "DC1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "DC2",
+            "parcel_id": "P-DC2",
+            "address": "DC2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "201500",
+            "sale_date": "2026-08-16",
+            "sqft": 1550,
+            "distance_miles": "0.45",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2008,
+            "lot_sqft": 7000,
+            "seller_name": "DC2 Sellerson",
+            "buyer_name": "DC2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "DC3",
+            "parcel_id": "P-DC3",
+            "address": "DC3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "207000",
+            "sale_date": "2026-07-07",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2014,
+            "lot_sqft": 7000,
+            "seller_name": "DC3 Sellerson",
+            "buyer_name": "DC3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "DC4",
+            "parcel_id": "P-DC4",
+            "address": "DC4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "224000",
+            "sale_date": "2026-09-05",
+            "sqft": 1600,
+            "distance_miles": "0.35",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2016,
+            "lot_sqft": 7000,
+            "seller_name": "DC4 Sellerson",
+            "buyer_name": "DC4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "DC5",
+            "parcel_id": "P-DC5",
+            "address": "DC5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "186200",
+            "sale_date": "2026-05-18",
+            "sqft": 1400,
+            "distance_miles": "0.7",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2009,
+            "lot_sqft": 7000,
+            "seller_name": "DC5 Sellerson",
+            "buyer_name": "DC5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "DC-NAL",
+            "parcel_id": "P-DC-NAL",
+            "address": "DC-NAL Comp St",
+            "postal_code": "77055",
+            "sale_price": "135000",
+            "sale_date": "2026-09-10",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2011,
+            "lot_sqft": 7000,
+            "seller_name": "Maria Nguyen",
+            "buyer_name": "Tran Nguyen",
+            "source": "provider",
+            "remarks": "Family transfer, no MLS exposure"
+          },
+          {
+            "comp_id": "DC-NEW",
+            "parcel_id": "P-DC-NEW",
+            "address": "DC-NEW Comp St",
+            "postal_code": "77055",
+            "sale_price": "325500",
+            "sale_date": "2026-08-26",
+            "sqft": 1550,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2026,
+            "lot_sqft": 7000,
+            "seller_name": "DC-NEW Sellerson",
+            "buyer_name": "DC-NEW Buyerman",
+            "source": "provider",
+            "remarks": "New construction, builder warranty"
+          },
+          {
+            "comp_id": "DC-FLIP",
+            "parcel_id": "P-DC-FLIP",
+            "address": "DC-FLIP Comp St",
+            "postal_code": "77055",
+            "sale_price": "255000",
+            "sale_date": "2026-09-15",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2011,
+            "lot_sqft": 7000,
+            "seller_name": "DC-FLIP Sellerson",
+            "buyer_name": "DC-FLIP Buyerman",
+            "source": "provider",
+            "prior_sale_date": "2026-01-18",
+            "prior_sale_price": "95000",
+            "remarks": "Fully renovated, new everything"
+          },
+          {
+            "comp_id": "DC-LOT",
+            "parcel_id": "P-DC-LOT",
+            "address": "DC-LOT Comp St",
+            "postal_code": "77055",
+            "sale_price": "520000",
+            "sale_date": "2026-07-27",
+            "sqft": 1300,
+            "distance_miles": "0.55",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2005,
+            "lot_sqft": 7000,
+            "seller_name": "DC-LOT Sellerson",
+            "buyer_name": "DC-LOT Buyerman",
+            "source": "provider",
+            "remarks": "Value in land; teardown"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "DC1": [],
+          "DC2": [],
+          "DC3": [],
+          "DC4": [],
+          "DC5": [],
+          "DC-NAL": [
+            "non_arms_length"
+          ],
+          "DC-NEW": [
+            "new_build"
+          ],
+          "DC-FLIP": [
+            "renovated_flip"
+          ],
+          "DC-LOT": [
+            "lot_value_outlier"
+          ]
+        },
+        "flagged": {
+          "DC-NAL": [
+            "non_arms_length"
+          ],
+          "DC-NEW": [
+            "new_build"
+          ],
+          "DC-FLIP": [
+            "renovated_flip"
+          ],
+          "DC-LOT": [
+            "lot_value_outlier"
+          ]
+        }
+      },
+      "tags": [
+        "prefilter",
+        "fixture"
+      ],
+      "notes": "integrations/data/fixtures/properties.json subject 930 Cedar Bend"
+    },
+    {
+      "id": "new_build_year_built_equals_sale_year",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "NB",
+            "parcel_id": "P-NB",
+            "address": "NB Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-09-15",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2026,
+            "lot_sqft": 7000,
+            "seller_name": "NB Sellerson",
+            "buyer_name": "NB Buyerman",
+            "source": "provider"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "NB": [
+            "new_build"
+          ]
+        },
+        "flagged": {
+          "NB": [
+            "new_build"
+          ]
+        }
+      },
+      "tags": [
+        "prefilter",
+        "new_build"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "new_build_boundary_and_remarks",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "NB1",
+            "parcel_id": "P-NB1",
+            "address": "NB1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-09-15",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2025,
+            "lot_sqft": 7000,
+            "seller_name": "NB1 Sellerson",
+            "buyer_name": "NB1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "NB2",
+            "parcel_id": "P-NB2",
+            "address": "NB2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1990,
+            "lot_sqft": 7000,
+            "seller_name": "NB2 Sellerson",
+            "buyer_name": "NB2 Buyerman",
+            "source": "provider",
+            "remarks": "New construction home with builder warranty"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "NB1": [
+            "new_build"
+          ],
+          "NB2": [
+            "new_build"
+          ]
+        },
+        "flagged": {
+          "NB1": [
+            "new_build"
+          ],
+          "NB2": [
+            "new_build"
+          ]
+        }
+      },
+      "tags": [
+        "prefilter",
+        "new_build"
+      ],
+      "notes": "year_built >= sale year - 1 and the remarks rule"
+    },
+    {
+      "id": "two_year_old_home_is_not_new_build",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "OLD2",
+            "parcel_id": "P-OLD2",
+            "address": "OLD2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-09-15",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2024,
+            "lot_sqft": 7000,
+            "seller_name": "OLD2 Sellerson",
+            "buyer_name": "OLD2 Buyerman",
+            "source": "provider"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "OLD2": []
+        },
+        "flagged": {}
+      },
+      "tags": [
+        "prefilter",
+        "new_build",
+        "negative"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lot_value_outlier_by_price",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "LOT",
+            "parcel_id": "P-LOT",
+            "address": "LOT Comp St",
+            "postal_code": "77055",
+            "sale_price": "520000",
+            "sale_date": "2026-09-25",
+            "sqft": 1300,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "LOT Sellerson",
+            "buyer_name": "LOT Buyerman",
+            "source": "provider"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "LOT": [
+            "lot_value_outlier"
+          ]
+        },
+        "flagged": {
+          "LOT": [
+            "lot_value_outlier"
+          ]
+        }
+      },
+      "tags": [
+        "prefilter",
+        "lot_value"
+      ],
+      "notes": "400/sqft vs a 140 median > 2.5x"
+    },
+    {
+      "id": "lot_value_outlier_by_remarks",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "TEAR",
+            "parcel_id": "P-TEAR",
+            "address": "TEAR Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "TEAR Sellerson",
+            "buyer_name": "TEAR Buyerman",
+            "source": "provider",
+            "remarks": "Teardown; value in land"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "TEAR": [
+            "lot_value_outlier"
+          ]
+        },
+        "flagged": {
+          "TEAR": [
+            "lot_value_outlier"
+          ]
+        }
+      },
+      "tags": [
+        "prefilter",
+        "lot_value"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "renovated_flip_cheap_prior_sale",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "FLIP",
+            "parcel_id": "P-FLIP",
+            "address": "FLIP Comp St",
+            "postal_code": "77055",
+            "sale_price": "255000",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "FLIP Sellerson",
+            "buyer_name": "FLIP Buyerman",
+            "source": "provider",
+            "prior_sale_date": "2026-03-09",
+            "prior_sale_price": "90000"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "FLIP": [
+            "renovated_flip"
+          ]
+        },
+        "flagged": {
+          "FLIP": [
+            "renovated_flip"
+          ]
+        }
+      },
+      "tags": [
+        "prefilter",
+        "flip"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "flip_by_remarks_but_long_hold_is_not",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "FLIPR",
+            "parcel_id": "P-FLIPR",
+            "address": "FLIPR Comp St",
+            "postal_code": "77055",
+            "sale_price": "240000",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "FLIPR Sellerson",
+            "buyer_name": "FLIPR Buyerman",
+            "source": "provider",
+            "prior_sale_date": "2025-11-29",
+            "prior_sale_price": "200000",
+            "remarks": "Fully renovated kitchen and baths"
+          },
+          {
+            "comp_id": "HOLD",
+            "parcel_id": "P-HOLD",
+            "address": "HOLD Comp St",
+            "postal_code": "77055",
+            "sale_price": "240000",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "HOLD Sellerson",
+            "buyer_name": "HOLD Buyerman",
+            "source": "provider",
+            "prior_sale_date": "2018-07-09",
+            "prior_sale_price": "60000",
+            "remarks": "Remodeled over the years"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "FLIPR": [
+            "renovated_flip"
+          ],
+          "HOLD": []
+        },
+        "flagged": {
+          "FLIPR": [
+            "renovated_flip"
+          ]
+        }
+      },
+      "tags": [
+        "prefilter",
+        "flip",
+        "negative"
+      ],
+      "notes": "a 3000-day hold with a cheap prior sale is appreciation, not a flip"
+    },
+    {
+      "id": "non_arms_length_shared_surname",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "NAL",
+            "parcel_id": "P-NAL",
+            "address": "NAL Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "Maria Nguyen",
+            "buyer_name": "Tran Nguyen",
+            "source": "provider"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "NAL": [
+            "non_arms_length"
+          ]
+        },
+        "flagged": {
+          "NAL": [
+            "non_arms_length"
+          ]
+        }
+      },
+      "tags": [
+        "prefilter",
+        "nal"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "non_arms_length_below_market_and_entities_exempt",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "CHEAP",
+            "parcel_id": "P-CHEAP",
+            "address": "CHEAP Comp St",
+            "postal_code": "77055",
+            "sale_price": "105000",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "CHEAP Sellerson",
+            "buyer_name": "CHEAP Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "LLC",
+            "parcel_id": "P-LLC",
+            "address": "LLC Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "Nguyen Holdings LLC",
+            "buyer_name": "Nguyen Family Trust",
+            "source": "provider"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "CHEAP": [
+            "non_arms_length"
+          ],
+          "LLC": []
+        },
+        "flagged": {
+          "CHEAP": [
+            "non_arms_length"
+          ]
+        }
+      },
+      "tags": [
+        "prefilter",
+        "nal",
+        "negative"
+      ],
+      "notes": "70/sqft < 60% of the 140 median; LLC / Trust names never trigger the surname rule"
+    },
+    {
+      "id": "non_arms_length_quitclaim_remarks",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "QC",
+            "parcel_id": "P-QC",
+            "address": "QC Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "QC Sellerson",
+            "buyer_name": "QC Buyerman",
+            "source": "provider",
+            "remarks": "Quitclaim deed, estate transfer"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "QC": [
+            "non_arms_length"
+          ]
+        },
+        "flagged": {
+          "QC": [
+            "non_arms_length"
+          ]
+        }
+      },
+      "tags": [
+        "prefilter",
+        "nal"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "model_adds_flip_without_prior_sale_data",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "MODEL",
+            "parcel_id": "P-MODEL",
+            "address": "MODEL Comp St",
+            "postal_code": "77055",
+            "sale_price": "262500",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "MODEL Sellerson",
+            "buyer_name": "MODEL Buyerman",
+            "source": "provider",
+            "remarks": "Stunning full renovation completed this spring; designer finishes"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "MODEL": []
+        },
+        "flagged": {
+          "MODEL": [
+            "renovated_flip"
+          ]
+        },
+        "model_flags": {
+          "MODEL": [
+            "renovated_flip"
+          ]
+        }
+      },
+      "tags": [
+        "model",
+        "flip"
+      ],
+      "notes": "no prior sale on record so the pre-filter stays silent; the model must flag the renovation"
+    },
+    {
+      "id": "model_adds_flag_prefilter_flags_kept",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "BOTH",
+            "parcel_id": "P-BOTH",
+            "address": "BOTH Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-09-15",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 2026,
+            "lot_sqft": 7000,
+            "seller_name": "BOTH Sellerson",
+            "buyer_name": "BOTH Buyerman",
+            "source": "provider",
+            "remarks": "Builder close-out, family sale"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": [],
+          "BOTH": [
+            "new_build",
+            "non_arms_length"
+          ]
+        },
+        "flagged": {
+          "BOTH": [
+            "new_build",
+            "non_arms_length"
+          ]
+        },
+        "model_flags": {
+          "BOTH": [
+            "new_build"
+          ]
+        }
+      },
+      "tags": [
+        "model",
+        "prefilter"
+      ],
+      "notes": "the union is what V3 acts on; the model may add, never remove"
+    },
+    {
+      "id": "model_unknown_ids_and_flags_dropped",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "C1",
+            "parcel_id": "P-C1",
+            "address": "C1 Comp St",
+            "postal_code": "77055",
+            "sale_price": "195000",
+            "sale_date": "2026-10-05",
+            "sqft": 1500,
+            "distance_miles": "0.2",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C1 Sellerson",
+            "buyer_name": "C1 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C2",
+            "parcel_id": "P-C2",
+            "address": "C2 Comp St",
+            "postal_code": "77055",
+            "sale_price": "202500",
+            "sale_date": "2026-09-20",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C2 Sellerson",
+            "buyer_name": "C2 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C3",
+            "parcel_id": "P-C3",
+            "address": "C3 Comp St",
+            "postal_code": "77055",
+            "sale_price": "210000",
+            "sale_date": "2026-09-05",
+            "sqft": 1500,
+            "distance_miles": "0.4",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C3 Sellerson",
+            "buyer_name": "C3 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C4",
+            "parcel_id": "P-C4",
+            "address": "C4 Comp St",
+            "postal_code": "77055",
+            "sale_price": "217500",
+            "sale_date": "2026-08-21",
+            "sqft": 1500,
+            "distance_miles": "0.5",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C4 Sellerson",
+            "buyer_name": "C4 Buyerman",
+            "source": "provider"
+          },
+          {
+            "comp_id": "C5",
+            "parcel_id": "P-C5",
+            "address": "C5 Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-08-06",
+            "sqft": 1500,
+            "distance_miles": "0.6",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "C5 Sellerson",
+            "buyer_name": "C5 Buyerman",
+            "source": "provider"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "C1": [],
+          "C2": [],
+          "C3": [],
+          "C4": [],
+          "C5": []
+        },
+        "flagged": {},
+        "model_flags": {
+          "GHOST": [
+            "new_build"
+          ]
+        }
+      },
+      "tags": [
+        "model",
+        "negative"
+      ],
+      "notes": "a verdict for a comp not in the set and a flag outside COMP_FLAGS are discarded"
+    },
+    {
+      "id": "single_comp_no_outlier",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": [
+          {
+            "comp_id": "ONLY",
+            "parcel_id": "P-ONLY",
+            "address": "ONLY Comp St",
+            "postal_code": "77055",
+            "sale_price": "225000",
+            "sale_date": "2026-09-25",
+            "sqft": 1500,
+            "distance_miles": "0.3",
+            "beds": 3,
+            "baths": "2",
+            "year_built": 1995,
+            "lot_sqft": 7000,
+            "seller_name": "ONLY Sellerson",
+            "buyer_name": "ONLY Buyerman",
+            "source": "provider"
+          }
+        ]
+      },
+      "expected": {
+        "prefilter": {
+          "ONLY": []
+        },
+        "flagged": {}
+      },
+      "tags": [
+        "prefilter",
+        "edge"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "empty_set_no_model_call",
+      "agent": "A7",
+      "task": "comp_audit",
+      "input": {
+        "subject": {
+          "address": "930 Cedar Bend, Houston, TX 77055",
+          "parcel_id": "HC-0005",
+          "sqft": 1500,
+          "beds": 3,
+          "baths": "2",
+          "year_built": 2012,
+          "postal_code": "77055"
+        },
+        "as_of": "2026-10-25",
+        "comps": []
+      },
+      "expected": {
+        "prefilter": {},
+        "flagged": {}
+      },
+      "tags": [
+        "edge"
+      ],
+      "notes": "audit() returns 'no comps' without a model call"
+    }
+  ]
+}
