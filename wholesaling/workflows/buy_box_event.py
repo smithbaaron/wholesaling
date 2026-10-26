@@ -29,6 +29,7 @@ from temporalio.common import RetryPolicy
 from temporalio.exceptions import ApplicationError
 
 with workflow.unsafe.imports_passed_through():
+    from wholesaling.activities.deals import RunD1Input, RunD1Result, run_d1
     from wholesaling.activities.zapier import (
         SendParserEmailInput,
         SendParserEmailResult,
@@ -110,12 +111,27 @@ class BuyBoxEventWorkflow:
         return result
 
     async def _run_search_steps(self, input: BuyBoxEventInput, result: BuyBoxEventResult) -> None:
-        """BO-11 extension point: D1 (search profile) then D2 (match) activities go here.
-
-        Until D1 exists this records that the step was reached and does nothing else. Keep the
-        call order (search before parser) so the parser email can later carry the profile id.
-        """
-        result.steps.append("search:not_built")
+        """BO-11: D1 normalises the buy box into a versioned search profile and, for a new
+        profile version, queues exactly one ``BuyBoxSearch`` workflow (which runs D2 once);
+        an unchanged revision coalesces and queues nothing (BB-05, BB-06, WF-07)."""
+        d1: RunD1Result = await workflow.execute_activity(
+            run_d1,
+            RunD1Input(
+                buy_box_id=input.buy_box_id,
+                investor_id=input.investor_id,
+                version=input.version,
+                event_type=input.event_type,
+            ),
+            start_to_close_timeout=PARSER_ACTIVITY_TIMEOUT,
+            retry_policy=PARSER_RETRY,
+        )
+        result.search_profile_id = d1.search_profile_id
+        if d1.created:
+            result.steps.append(f"search:queued:{d1.search_workflow_id}")
+            if d1.superseded_workflow_id:
+                result.steps.append(f"search:superseded:{d1.superseded_workflow_id}")
+        else:
+            result.steps.append(f"search:coalesced:v{d1.profile_version}")
 
     @workflow.query
     def status(self) -> dict[str, Any]:
